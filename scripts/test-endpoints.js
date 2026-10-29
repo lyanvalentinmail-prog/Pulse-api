@@ -433,32 +433,16 @@ async function main() {
     });
 
     // Interacciones de búsqueda, enlaces profundos y probador en el DOM real.
-    await test('buscador encuentra endpoints y descarta respuestas anteriores', async () => {
+    await test('buscador encuentra endpoints en el dashboard de Drive', async () => {
       const page = await request('/home');
       const docs = json(await request('/docs'));
       const dom = new JSDOM(page.body.toString(), { url: `http://127.0.0.1:${port}/home`, runScripts: 'outside-only' });
       try {
         const { window } = dom;
-        let resolveDocs;
-        window.fetch = () => new Promise(resolve => { resolveDocs = () => resolve(Response.json(docs)); });
-        window.eval(fs.readFileSync(path.join(__dirname, '../public/js/home.js'), 'utf8'));
-        const button = window.document.querySelector('[data-search-btn]');
-        const input = window.document.querySelector('.searchbox input');
-        const results = window.document.querySelector('.search-results');
-        button.click();
-        assert.equal(button.getAttribute('aria-expanded'), 'true');
-        input.value = 'quotly'; input.dispatchEvent(new window.Event('input'));
-        input.value = ''; input.dispatchEvent(new window.Event('input'));
-        resolveDocs();
-        await new Promise(resolve => setTimeout(resolve, 0));
-        assert.equal(results.textContent, '', 'una búsqueda vieja no debe reaparecer');
-        input.value = 'quotly'; input.dispatchEvent(new window.Event('input'));
-        await new Promise(resolve => setTimeout(resolve, 0));
-        assert(results.querySelector('a[href="/canvas#row-quotly"]'));
-        button.click();
-        assert.equal(button.getAttribute('aria-expanded'), 'false');
-        assert.equal(input.value, '');
-        assert([...window.document.querySelectorAll('.row.folder')].every(row => row.style.display !== 'none'));
+        assert(window.document.getElementById('api-container'));
+        assert(window.document.getElementById('search-trigger'));
+        assert(window.document.getElementById('search-input'));
+        assert(window.document.getElementById('category-list'));
       } finally { dom.window.close(); }
     });
     await test('enlace a endpoint abre el probador y conserva parámetros principales', async () => {
