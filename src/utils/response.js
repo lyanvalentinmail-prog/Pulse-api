@@ -1,4 +1,4 @@
-// src/utils/response.js — Formato de respuesta Velirius (JSON estilo Delirius + media con Range 206)
+// src/utils/response.js — Formato de respuesta Pulse (JSON Pulse + media con Range 206)
 const fs = require('fs');
 const config = require('../config');
 
@@ -36,7 +36,7 @@ function formatValueClean(val, indent = '') {
 
 function sendSuccess(res, result, extra = {}) {
   const req = res.req;
-  // ?format=text → texto limpio (útil para bots). Por defecto: JSON como Delirius.
+  // ?format=text → texto limpio (útil para bots). Por defecto: JSON Pulse.
   if (req && (req.query?.format === 'text' || req.query?.format === 'txt')) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -64,15 +64,15 @@ function wantsDownload(req) {
 const disposicion = (req, filename, fallback) =>
   `${wantsDownload(req) ? 'attachment' : 'inline'}; filename="${safeHeaderFilename(filename, fallback)}"`;
 
-function safeHeaderFilename(filename, fallback = 'Velirius-media') {
+function safeHeaderFilename(filename, fallback = 'Pulse-media') {
   return String(filename || fallback).replace(/[^\x20-\x7E]/g, '').replace(/["\\]/g, '').trim() || fallback;
 }
 
-function sendPng(res, buffer, filename = 'Velirius.png') {
+function sendPng(res, buffer, filename = 'Pulse.png') {
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Content-Length', String(buffer.length));
   res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Content-Disposition', disposicion(res.req, filename, 'Velirius.png'));
+  res.setHeader('Content-Disposition', disposicion(res.req, filename, 'Pulse.png'));
   return res.status(200).send(buffer);
 }
 
@@ -159,13 +159,13 @@ async function proxyStream(req, res, upstreamUrl, { filename = 'media', headers 
  * Envía un archivo LOCAL (por ejemplo un MP4 pegado con ffmpeg) con soporte de
  * Range para que el reproductor pueda buscar dentro del video.
  */
-function sendFile(res, filePath, { mime = 'video/mp4', filename = 'Velirius-video.mp4', cache = 'no-store' } = {}) {
+function sendFile(res, filePath, { mime = 'video/mp4', filename = 'Pulse-video.mp4', cache = 'no-store' } = {}) {
   const total = fs.statSync(filePath).size;
   const rangeHeader = res.req?.headers?.range || null;
   res.setHeader('Content-Type', mime);
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Cache-Control', cache);
-  res.setHeader('Content-Disposition', disposicion(res.req, filename, 'Velirius-video.mp4'));
+  res.setHeader('Content-Disposition', disposicion(res.req, filename, 'Pulse-video.mp4'));
   let start = 0;
   let end = total - 1;
   let status = 200;

@@ -22,7 +22,7 @@ async function chatBubble(id, q, opts = {}) {
   const { buf, width: W, height: H } = await templateMeta(parts.template);
   const family = ov.font || parts.msg.font.family;
 
-  const raw = txt(q, opts.defaultText || 'Welcome to Velirius API');
+  const raw = txt(q, opts.defaultText || 'Welcome to Pulse API');
   const message = ov.uppercase ? raw.toUpperCase() : raw;
 
   // ---- geometría del globo (px de la plantilla) ----

@@ -32,7 +32,7 @@ module.exports = {
       O('limit', '10', 'Cantidad de resultados (1-30)')
     ] },
     { id: 'google', desc: 'Busca en la web (Google → DuckDuckGo → Bing, el primero que responda)', params: [
-      P('query', 'Velirius API', 'Qué quieres buscar'),
+      P('query', 'Pulse API', 'Qué quieres buscar'),
       O('limit', '10', 'Cantidad de resultados (1-20)'),
       O('lang', 'es', 'Idioma de la búsqueda (es, en, pt…)')
     ] },

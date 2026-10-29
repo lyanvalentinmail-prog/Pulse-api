@@ -46,7 +46,7 @@ const json = response => JSON.parse(response.body.toString());
 const query = params => new URLSearchParams(params).toString();
 
 async function main() {
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'velirius-endpoints-'));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-endpoints-'));
   const audioFile = path.join(temp, 'test.mp3');
   const audioBytes = Buffer.concat([Buffer.from('ID3'), Buffer.alloc(1200, 4)]);
   fs.writeFileSync(audioFile, audioBytes);
@@ -467,7 +467,7 @@ async function main() {
       try {
         const { window } = dom;
         window.Element.prototype.scrollIntoView = () => {};
-        window.eval([...window.document.scripts].find(s => s.textContent.includes('window.VELIRIUS')).textContent);
+        window.eval([...window.document.scripts].find(s => s.textContent.includes('window.PULSE')).textContent);
         window.eval(fs.readFileSync(path.join(__dirname, '../public/js/category.js'), 'utf8'));
         const tester = window.document.getElementById('tester-quotly');
         const button = window.document.querySelector('[data-test-btn="quotly"]');
@@ -476,8 +476,8 @@ async function main() {
         const bg = tester.querySelector('[data-param="bg"]');
         assert(bg && !bg.closest('.adv-fields'), 'los cuatro primeros parámetros deben ser visibles');
         const text = tester.querySelector('[data-param="text"]');
-        text.value = 'Hola Velirius'; text.dispatchEvent(new window.Event('input', { bubbles: true }));
-        assert.match(tester.querySelector('.code-url').textContent, /text=Hola\+Velirius/);
+        text.value = 'Hola Pulse'; text.dispatchEvent(new window.Event('input', { bubbles: true }));
+        assert.match(tester.querySelector('.code-url').textContent, /text=Hola\+Pulse/);
         assert.match(tester.querySelector('.code-fetch').textContent, /^fetch\("\/canvas\/quotly\?/);
         window.document.querySelector('[data-test-btn="brat"]').click();
         assert.equal(button.getAttribute('aria-expanded'), 'false');
@@ -495,7 +495,7 @@ async function main() {
           const r = await request(url, options || {});
           return new Response(r.body, { status: r.status, headers: r.headers });
         };
-        window.eval([...window.document.scripts].find(s => s.textContent.includes('window.VELIRIUS')).textContent);
+        window.eval([...window.document.scripts].find(s => s.textContent.includes('window.PULSE')).textContent);
         window.eval(fs.readFileSync(path.join(__dirname, '../public/js/category.js'), 'utf8'));
         const row = window.document.querySelector('[data-endpoint="neko"]');
         const tester = row.nextElementSibling;
@@ -525,7 +525,7 @@ async function main() {
           }
           throw new Error(`Petición inesperada: ${url}`);
         };
-        window.eval([...window.document.scripts].find(s => s.textContent.includes('window.VELIRIUS')).textContent);
+        window.eval([...window.document.scripts].find(s => s.textContent.includes('window.PULSE')).textContent);
         window.eval(fs.readFileSync(path.join(__dirname, '../public/js/category.js'), 'utf8'));
         const tester = window.document.querySelector('[data-endpoint="quotly"]').nextElementSibling;
         const input = tester.querySelector('input[type="file"][data-upload-for="image"]');

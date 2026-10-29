@@ -20,7 +20,7 @@ router.get(['/list', '/all'], (req, res) => sendSuccess(res, {
 router.get('/:reaction', async (req, res) => {
   try {
     const data = await P.reaction(req.params.reaction, { provider: req.query.provider || null });
-    if (wantsDirect(req)) return proxyStream(req, res, data.gif, { filename: `velirius-${data.reaction}.gif` });
+    if (wantsDirect(req)) return proxyStream(req, res, data.gif, { filename: `pulse-${data.reaction}.gif` });
     return sendSuccess(res, {
       reaction: data.reaction,
       label: data.label,

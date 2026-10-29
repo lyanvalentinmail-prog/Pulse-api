@@ -13,7 +13,7 @@ const router = express.Router();
 const jsonBody = express.json({ limit: '24mb' });
 
 const directo = req => ['true', '1', 'yes', 'si', 'sí'].includes(String(req.query.direct || '').toLowerCase()) || wantsDownload(req);
-const slug = s => String(s || 'velirius').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40).toLowerCase() || 'velirius';
+const slug = s => String(s || 'pulse').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40).toLowerCase() || 'pulse';
 
 // ==========================================================================
 // Calculator — parser seguro (sin eval)
@@ -263,7 +263,7 @@ async function handleResize(req, res) {
     outW = rendered.width;
     outH = rendered.height;
     const mime = formato === 'jpg' || formato === 'jpeg' ? 'image/jpeg' : `image/${formato}`;
-    const nombre = `velirius-${outW}x${outH}.${formato === 'jpeg' ? 'jpg' : formato}`;
+    const nombre = `pulse-${outW}x${outH}.${formato === 'jpeg' ? 'jpg' : formato}`;
     const wantsJson = String(q.json || '').toLowerCase() === 'true' || String(q.format || '').toLowerCase() === 'json';
     if (wantsJson && !['true', '1', 'yes'].includes(String(q.direct || '').toLowerCase()) && !wantsDownload(req)) {
       let image;
@@ -302,7 +302,7 @@ router.get(['/tts', '/texttospeech', '/speech', '/voz'], async (req, res) => {
   const texto = String(req.query.text ?? req.query.q ?? req.query.query ?? req.query.message ?? '').trim();
   if (!texto) {
     return sendError(res, 400, 'Falta el parámetro text',
-      'Ejemplo: /tools/tts?text=Hola%20Velirius&lang=es · agregá &direct=true para el MP3');
+      'Ejemplo: /tools/tts?text=Hola%20Pulse&lang=es · agregá &direct=true para el MP3');
   }
   if (texto.length > 3000) return sendError(res, 400, 'El texto es demasiado largo', 'Máximo 3000 caracteres por pedido');
   const lang = String(req.query.lang || req.query.language || req.query.idioma || 'es');
@@ -317,7 +317,7 @@ router.get(['/tts', '/texttospeech', '/speech', '/voz'], async (req, res) => {
     const q = new URLSearchParams(req.query);
     q.set('direct', 'true');
     const url = absoluteUrl(req, `${self}?${q.toString()}`);
-    if (directo(req)) return sendMedia(res, audio.buffer, audio.mime, `velirius-${slug(texto).slice(0, 24)}.mp3`);
+    if (directo(req)) return sendMedia(res, audio.buffer, audio.mime, `pulse-${slug(texto).slice(0, 24)}.mp3`);
     return sendSuccess(res, {
       text: texto,
       lang: audio.lang || lang,

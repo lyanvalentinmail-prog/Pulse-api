@@ -1,4 +1,4 @@
-Emojis a color de Velirius API
+Emojis a color de Pulse API
 ==============================
 
 `twitter-64.png` es una hoja de sprites con los emojis de **Twemoji**

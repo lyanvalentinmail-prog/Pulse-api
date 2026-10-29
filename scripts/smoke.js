@@ -43,7 +43,7 @@ async function main() {
     const t = totals();
     const home = await get(port, '/home');
     const homeHtml = home.body.toString();
-    ok('GET /home', home.status === 200 && homeHtml.includes('Velirius API') && homeHtml.includes('Aquí están las carpetas'));
+    ok('GET /home', home.status === 200 && homeHtml.includes('Pulse API') && homeHtml.includes('Aquí están las carpetas'));
     ok('Home con la fila de iconos de Apireon', /class="icons"/.test(homeHtml) && homeHtml.includes('href="/information"')
       && homeHtml.includes('href="/docs"') && homeHtml.includes('data-search-btn') && homeHtml.includes('Sigue mi cuenta de GitHub'));
     ok('Home con barra de estado (ESTADO / RUTAS / ENDPOINTS)', /Estado:/i.test(homeHtml) && /Rutas:/i.test(homeHtml) && /Endpoints:/i.test(homeHtml));
@@ -204,13 +204,13 @@ async function main() {
     ok('canvas/profilenote acepta ?label=', isPng(nota) && (await sharp(nota).metadata()).height === (await sharp(await generateCanvas('profilenote', {})).metadata()).height);
 
     // ---- Canvas por HTTP, con parámetros de estilo ----
-    const via = await get(port, '/canvas/brat?text=Hola%20Velirius&color=ff2d55&size=1.4');
+    const via = await get(port, '/canvas/brat?text=Hola%20Pulse&color=ff2d55&size=1.4');
     ok('GET /canvas/brat?color&size PNG', via.status === 200 && via.type.includes('image/png') && isPng(via.body));
     const viaSign = await get(port, '/canvas/bratanime?text=Hola&rotate=12&uppercase=true&x=5');
     ok('GET /canvas/bratanime con overrides', viaSign.status === 200 && isPng(viaSign.body));
     // bratcoyote: letra a mano (familia `hand`) por defecto y override a sans
-    const coyote = await generateCanvas('bratcoyote', { text: 'Hola Velirius' });
-    const coyoteSans = await generateCanvas('bratcoyote', { text: 'Hola Velirius', font: 'sans' });
+    const coyote = await generateCanvas('bratcoyote', { text: 'Hola Pulse' });
+    const coyoteSans = await generateCanvas('bratcoyote', { text: 'Hola Pulse', font: 'sans' });
     ok('canvas/bratcoyote usa la letra a mano (hand) y respeta ?font=sans',
       isPng(coyote) && isPng(coyoteSans) && Buffer.compare(coyote, coyoteSans) !== 0);
 
@@ -440,11 +440,11 @@ async function main() {
       id: '123',
       grid_title: 'gato aesthetic',
       images: { orig: { url: 'https://i.pinimg.com/originals/a.jpg', width: 1000, height: 1500 }, '236x': { url: 'https://i.pinimg.com/236x/a.jpg' } },
-      pinner: { username: 'velirius' }
+      pinner: { username: 'pulse' }
     });
     ok('Pinterest: el pin usa la imagen original y arma su URL',
       pinImg.type === 'image' && pinImg.image === 'https://i.pinimg.com/originals/a.jpg'
-      && pinImg.url === 'https://www.pinterest.com/pin/123/' && pinImg.author === 'velirius');
+      && pinImg.url === 'https://www.pinterest.com/pin/123/' && pinImg.author === 'pulse');
     const pinVideo = P.mapPinterestPin({
       id: '9',
       images: { orig: { url: 'https://i.pinimg.com/originals/b.jpg' } },

@@ -648,7 +648,7 @@ async function signCanvas(file, area, q, opts = {}) {
       const erase = await eraseSampleText(buf, W, H, area, { inset: textOpts.eraseInset ?? 0.08 });
       if (erase) layers.push(erase);
     }
-    layers.push(placeTextArea(W, H, area, text || opts.defaultText || 'Welcome to Velirius API', {
+    layers.push(placeTextArea(W, H, area, text || opts.defaultText || 'Welcome to Pulse API', {
       ...textOpts, cover: null, ov
     }));
   }

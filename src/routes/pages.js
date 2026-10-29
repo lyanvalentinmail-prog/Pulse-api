@@ -1,4 +1,4 @@
-// src/routes/pages.js — Dashboard, categorías, información y catálogo JSON de Velirius
+// src/routes/pages.js — Dashboard, categorías, información y catálogo JSON de Pulse
 const express = require('express');
 const config = require('../config');
 const { CATEGORIES, totals, findCategory, exampleQuery } = require('../catalog');
@@ -26,7 +26,7 @@ function layout({ title, body, script = '', bare = false }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="Velirius API — Anime, Canvas, Tools, Downloader, Searcher y Reactions. Sin token.">
+<meta name="description" content="Pulse API — Anime, Canvas, Tools, Downloader, Searcher y Reactions. Sin token.">
 <link rel="icon" href="/img/banner.jpg">
 <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -51,16 +51,16 @@ router.get('/welcome', (req, res) => {
   const body = `
     <div class="paper">
       <header class="masthead">
-        <h1 class="brand">Velirius API</h1>
+        <h1 class="brand">Pulse API</h1>
         <div class="pill">V. ${esc(config.version)} // STATUS: ONLINE</div>
       </header>
 
       <figure class="hero">
         <video src="/media/dashboardvid.mp4" poster="/img/banner.jpg" autoplay muted loop playsinline
-               aria-label="Velirius API en funcionamiento"></video>
+               aria-label="Pulse API en funcionamiento"></video>
       </figure>
 
-      <p class="para"><strong>Velirius</strong> is a free-access API designed to optimize workflows without the friction of <strong>API Keys</strong>. What started as a personal toolset has evolved into a public resource driven by the community.</p>
+      <p class="para"><strong>Pulse</strong> is a free-access API designed to optimize workflows without the friction of <strong>API Keys</strong>. What started as a personal toolset has evolved into a public resource driven by the community.</p>
 
       <p class="para">Every router &mdash; <strong>Anime</strong>, <strong>Canvas</strong>, <strong>Tools</strong>, <strong>Downloader</strong>, <strong>Searcher</strong> and <strong>Reactions</strong> &mdash; runs on <strong>Node.js + Sharp</strong>, so images, stickers and videos are generated on the fly and nothing depends on the fonts installed on the host.</p>
 
@@ -76,7 +76,7 @@ router.get('/welcome', (req, res) => {
       <div class="sheet-footer">&copy; 2026 &mdash; ${esc(config.storeFooter)}</div>
     </div>`;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.send(layout({ title: 'Velirius API', body, bare: true }));
+  return res.send(layout({ title: 'Pulse API', body, bare: true }));
 });
 
 // Alias antiguos → rutas nuevas
@@ -98,7 +98,7 @@ router.get(['/', '/home'], (req, res) => {
 
   const body = `
     <header>
-      <h1 class="title">Velirius API</h1>
+      <h1 class="title">Pulse API</h1>
       <div class="sync">Sincronización completa</div>
     </header>
 
@@ -112,7 +112,7 @@ router.get(['/', '/home'], (req, res) => {
         <a href="/information" title="Información del Sistema" aria-label="Información del Sistema">${I.activity}</a>
         <a href="/docs" target="_blank" rel="noopener noreferrer" title="Catálogo JSON (/docs)" aria-label="Catálogo JSON">${I.docs}</a>
         <a href="${esc(config.githubUrl)}" target="_blank" rel="noopener noreferrer" title="Cuenta de GitHub" aria-label="Cuenta de GitHub">${I.github}</a>
-        <a href="${esc(config.repoUrl || config.githubUrl)}" target="_blank" rel="noopener noreferrer" title="Repositorio Velirius" aria-label="Repositorio Velirius">${I.external}</a>
+        <a href="${esc(config.repoUrl || config.githubUrl)}" target="_blank" rel="noopener noreferrer" title="Repositorio Pulse" aria-label="Repositorio Pulse">${I.external}</a>
       </div>
       <button type="button" data-search-btn aria-label="Buscar" aria-expanded="false" aria-controls="searchbox">${I.search}</button>
     </div>
@@ -131,7 +131,7 @@ router.get(['/', '/home'], (req, res) => {
     <footer class="footer">© ${new Date().getFullYear()} | ${esc(config.brand)}</footer>`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.send(layout({ title: 'Velirius API - API REST', body, script: '<script src="/js/home.js"></script>' }));
+  return res.send(layout({ title: 'Pulse API - API REST', body, script: '<script src="/js/home.js"></script>' }));
 });
 
 // ---------- /information ----------
@@ -155,7 +155,7 @@ router.get('/information', (req, res) => {
     <div class="status"><span>Red:&nbsp; En línea</span><span>Lista:&nbsp; ${t.endpoints}</span></div>
 
     <div class="list info-block">
-      <div><b>API:</b> Velirius API (sin token)</div>
+      <div><b>API:</b> Pulse API (sin token)</div>
       <div><b>Base URL:</b> ${esc(base)}/</div>
       <div><b>Routers:</b> ${CATEGORIES.map(c => `<a href="/${c.id}">${esc(c.id)}</a>`).join(' · ')}</div>
       <div><b>Formato:</b> JSON <code>{ creator, status, result }</code> · Canvas devuelve imagen/video directo</div>
@@ -169,7 +169,7 @@ router.get('/information', (req, res) => {
     </div>
     <footer class="footer">© ${new Date().getFullYear()} | ${esc(config.brand)}</footer>`;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.send(layout({ title: 'Velirius API - Información del Sistema', body }));
+  return res.send(layout({ title: 'Pulse API - Información del Sistema', body }));
 });
 
 // ---------- /docs (JSON) ----------
@@ -283,7 +283,7 @@ router.get('/:category(anime|canvas|tools|downloader|searcher|reactions)', (req,
 
   // JSON insertado en HTML: escapar '<' impide cerrar el script desde los datos.
   const safeData = JSON.stringify(testerData).replace(/</g, '\\u003c');
-  const script = `<script>window.VELIRIUS=${safeData};</script><script src="/js/category.js"></script>`;
+  const script = `<script>window.PULSE=${safeData};</script><script src="/js/category.js"></script>`;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   return res.send(layout({ title: `${config.name} - ${cat.name}`, body, script }));
 });

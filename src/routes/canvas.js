@@ -33,16 +33,16 @@ async function handleCanvas(req, res) {
     if (id === 'bratvideo') {
       // Mismas opciones que /canvas/brat (tipografía y colores) + `words`
       // (cuántas palabras entran por pantalla, 5 por defecto).
-      const buf = await bratVideo(txt(q, 'Welcome to Velirius API'), q);
-      return sendMedia(res, buf, 'video/mp4', 'velirius-bratvideo.mp4');
+      const buf = await bratVideo(txt(q, 'Welcome to Pulse API'), q);
+      return sendMedia(res, buf, 'video/mp4', 'pulse-bratvideo.mp4');
     }
     if (id === 'attp') {
-      const buf = await attpVideo(txt(q, 'Welcome to Velirius'), { size: styleOf(q).scale });
-      return sendMedia(res, buf, 'video/webm', 'velirius-attp.webm');
+      const buf = await attpVideo(txt(q, 'Welcome to Pulse'), { size: styleOf(q).scale });
+      return sendMedia(res, buf, 'video/webm', 'pulse-attp.webm');
     }
     const buf = await generateCanvas(id, q);
     if (!buf) return sendError(res, 404, `Canvas "${id}" no existe`, 'Revisa la lista en /canvas');
-    return sendPng(res, buf, `velirius-${id}.png`);
+    return sendPng(res, buf, `pulse-${id}.png`);
   } catch (e) {
     // Errores de la imagen que mandó el usuario → 400 con pista, no un 500.
     if (e.status && Number(e.status) < 500) {

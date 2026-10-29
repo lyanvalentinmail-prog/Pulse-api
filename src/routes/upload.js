@@ -68,7 +68,7 @@ router.get('/:id', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Disposition', disposicion(req, `velirius-${req.params.id}.${(file.mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`, 'velirius.jpg'));
+  res.setHeader('Content-Disposition', disposicion(req, `pulse-${req.params.id}.${(file.mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`, 'pulse.jpg'));
   return res.status(200).send(file.buffer);
 });
 

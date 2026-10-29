@@ -9,8 +9,8 @@ const {
 module.exports = async function quotly(q) {
   const ov = styleOf(q);
   const parts = partsOf('quotly');
-  const username = String(q.username || q.name || 'Velirius Api').slice(0, 40);
-  const text = txt(q, 'Welcome to Velirius Api');
+  const username = String(q.username || q.name || 'Pulse Api').slice(0, 40);
+  const text = txt(q, 'Welcome to Pulse Api');
   const bg = ov.bg && ov.bg !== 'transparent' ? ov.bg : P.bg(q, 'canvas', normColor(q.bg, parts.canvas.bg));
   const dark = ['#000000', '#111111', '#17212b', 'black'].includes(String(bg).toLowerCase());
   const bodyColor = ov.fill || P.color(q, 'body', 'fill', dark ? parts.body.fill : '#111111');

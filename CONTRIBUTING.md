@@ -71,7 +71,7 @@ Las medidas y estilos viven en `src/canvas/layouts.js`, en bloques con nombre (`
 ### Paso 1 — la ruta (`src/routes/<categoría>.js`)
 
 ```js
-// GET /tools/emoji  →  { creator: 'Velirius', status: true, result: { … } }
+// GET /tools/emoji  →  { creator: 'Pulse', status: true, result: { … } }
 router.get('/emoji', async (req, res) => {
   try {
     const text = String(req.query.text || 'hola').slice(0, 100);
@@ -216,7 +216,7 @@ separado (DASH). En modo automático (`quality=auto`):
 2. si no existe, `src/utils/youtube.js` baja las dos pistas y las pega con **ffmpeg**
    (`-c copy`, sin recodificar) en un MP4 temporal, que se sirve con `Range` (`sendFile`).
 
-Los MP4 pegados viven en `os.tmpdir()/velirius-yt` y se borran solos a los 15 minutos.
+Los MP4 pegados viven en `os.tmpdir()/pulse-yt` y se borran solos a los 15 minutos.
 
 ## 5. Agregar una categoría nueva (poco frecuente)
 

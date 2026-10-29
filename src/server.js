@@ -1,4 +1,4 @@
-// src/server.js — Velirius API (Express). Web estilo Delirius + 6 routers sin token.
+// src/server.js — Pulse API (Express). Web estilo retro + 6 routers sin token.
 const path = require('path');
 const express = require('express');
 const config = require('./config');
@@ -11,11 +11,11 @@ app.set('trust proxy', true);
 // Estáticos (CSS/JS/imágenes de ejemplo)
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
 
-// CORS abierto: la API es pública y sin token (igual que Delirius)
+// CORS abierto: la API es pública y sin token 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-velirius-client, Range');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-pulse-client, Range');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
   if (req.method === 'OPTIONS') return res.status(204).end();
   next();
@@ -48,7 +48,7 @@ app.get('/ping', (req, res) => {
 app.use((req, res) => {
   const accept = String(req.headers.accept || '');
   if (accept.includes('text/html') && req.method === 'GET') {
-    return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>404 — Velirius API</title><link rel="stylesheet" href="/css/style.css"></head><body><div class="wrap"><main class="card"><h1 class="title">404</h1><div class="sync">Not Found</div><p class="intro">Esta ruta no existe. Revisa las carpetas en el <strong>home</strong>.</p><div class="follow"><a href="/home">← Go Home</a></div><div class="footer">© 2026 | ${config.brand}</div></main></div></body></html>`);
+    return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>404 — Pulse API</title><link rel="stylesheet" href="/css/style.css"></head><body><div class="wrap"><main class="card"><h1 class="title">404</h1><div class="sync">Not Found</div><p class="intro">Esta ruta no existe. Revisa las carpetas en el <strong>home</strong>.</p><div class="follow"><a href="/home">← Go Home</a></div><div class="footer">© 2026 | ${config.brand}</div></main></div></body></html>`);
   }
   return sendError(res, 404, 'Endpoint no encontrado', 'Revisa el catálogo en /docs');
 });

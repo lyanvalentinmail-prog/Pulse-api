@@ -1,4 +1,4 @@
-// src/config.js — Configuración central de Velirius API
+// src/config.js — Configuración central de Pulse API
 module.exports = {
   name: 'Pulse API',
   brand: 'PULSE',
