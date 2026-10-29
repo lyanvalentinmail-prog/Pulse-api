@@ -44,94 +44,26 @@ function avatars(req) {
   };
 }
 
-// La portada anterior se conserva disponible sin desplazar el dashboard principal.
+// Páginas basadas exactamente en el HTML y diseño de Drive ("Pulse api")
+const fs = require('fs');
+const path = require('path');
+
+const WELCOME_HTML = fs.readFileSync(path.join(__dirname, '../../public/welcome.html'), 'utf-8');
+const HOME_HTML = fs.readFileSync(path.join(__dirname, '../../public/home.html'), 'utf-8');
+
 router.get('/welcome', (req, res) => {
-  const base = absoluteUrl(req, '');
-  const t = totals();
-  const body = `
-    <div class="paper">
-      <header class="masthead">
-        <h1 class="brand">Pulse API</h1>
-        <div class="pill">V. ${esc(config.version)} // STATUS: ONLINE</div>
-      </header>
-
-      <figure class="hero">
-        <video src="/media/dashboardvid.mp4" poster="/img/banner.jpg" autoplay muted loop playsinline
-               aria-label="Pulse API en funcionamiento"></video>
-      </figure>
-
-      <p class="para"><strong>Pulse</strong> is a free-access API designed to optimize workflows without the friction of <strong>API Keys</strong>. What started as a personal toolset has evolved into a public resource driven by the community.</p>
-
-      <p class="para">Every router &mdash; <strong>Anime</strong>, <strong>Canvas</strong>, <strong>Tools</strong>, <strong>Downloader</strong>, <strong>Searcher</strong> and <strong>Reactions</strong> &mdash; runs on <strong>Node.js + Sharp</strong>, so images, stickers and videos are generated on the fly and nothing depends on the fonts installed on the host.</p>
-
-      <div class="alert">
-        <span class="alert-tag"><span class="warn">&#9888;</span> Security alert</span>
-        <p>If you detect third parties commercializing access to this API, report it immediately. This resource is free and open-source for all developers.</p>
-      </div>
-
-      <p class="para">Explore our <a href="/home">dashboard</a> where you can browse every folder, or read the <a href="/docs">JSON docs</a> to document your projects. Base URL: <strong>${esc(base)}</strong> &middot; ${t.endpoints} endpoints in ${t.routers} routers.</p>
-
-      <div class="cta-wrap"><a class="cta" href="/home">Initialize dashboard</a></div>
-
-      <div class="sheet-footer">&copy; 2026 &mdash; ${esc(config.storeFooter)}</div>
-    </div>`;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.send(layout({ title: 'Pulse API', body, bare: true }));
+  return res.send(WELCOME_HTML);
 });
 
 // Alias antiguos → rutas nuevas
 router.get('/download', (req, res) => res.redirect('/downloader'));
 router.get('/search', (req, res) => res.redirect('/searcher'));
 
-// ---------- / y /home (dashboard de carpetas) ----------
+// ---------- / y /home (dashboard de carpetas exacto de Drive) ----------
 router.get(['/', '/home'], (req, res) => {
-  const t = totals();
-  const rows = [...CATEGORIES].sort((a, b) => a.id.localeCompare(b.id)).map(c => `
-      <a class="row folder" href="/${c.id}">
-        <span class="folder-icon">${I.folder}</span>
-        <span class="info">
-          <h3>${esc(c.id)}</h3>
-          <span class="count">${c.endpoints.length} endpoints</span>
-        </span>
-        <span class="cat-ver">Ver</span>
-      </a>`).join('');
-
-  const body = `
-    <header>
-      <h1 class="title">Pulse API</h1>
-      <div class="sync">Sincronización completa</div>
-    </header>
-
-    <p class="intro">Aquí están las carpetas con todas las <strong>APIS</strong> disponibles en este sitio web.
-      <strong class="token-note">(No Requiere Token)</strong>
-      <a class="github-link" href="${esc(config.githubUrl)}" target="_blank" rel="noopener noreferrer">Sigue mi cuenta de GitHub</a>
-    </p>
-
-    <div class="icons">
-      <div class="left">
-        <a href="/information" title="Información del Sistema" aria-label="Información del Sistema">${I.activity}</a>
-        <a href="/docs" target="_blank" rel="noopener noreferrer" title="Catálogo JSON (/docs)" aria-label="Catálogo JSON">${I.docs}</a>
-        <a href="${esc(config.githubUrl)}" target="_blank" rel="noopener noreferrer" title="Cuenta de GitHub" aria-label="Cuenta de GitHub">${I.github}</a>
-        <a href="${esc(config.repoUrl || config.githubUrl)}" target="_blank" rel="noopener noreferrer" title="Repositorio Pulse" aria-label="Repositorio Pulse">${I.external}</a>
-      </div>
-      <button type="button" data-search-btn aria-label="Buscar" aria-expanded="false" aria-controls="searchbox">${I.search}</button>
-    </div>
-    <div class="searchbox" id="searchbox"><input type="search" placeholder="Buscar carpeta o endpoint…" aria-label="Buscar carpeta o endpoint"><div class="search-results" aria-live="polite"></div></div>
-
-    <div class="status">
-      <span>Estado:&nbsp; En línea</span>
-      <span class="right">
-        <span class="stat">${I.folder} Rutas:&nbsp; ${t.routers}</span>
-        <span class="stat">${I.stack} Endpoints:&nbsp; ${t.endpoints}</span>
-      </span>
-    </div>
-
-    <div class="list">${rows}</div>
-
-    <footer class="footer">© ${new Date().getFullYear()} | ${esc(config.brand)}</footer>`;
-
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.send(layout({ title: 'Pulse API - API REST', body, script: '<script src="/js/home.js"></script>' }));
+  return res.send(HOME_HTML);
 });
 
 // ---------- /information ----------

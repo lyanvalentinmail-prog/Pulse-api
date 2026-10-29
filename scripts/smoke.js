@@ -43,14 +43,12 @@ async function main() {
     const t = totals();
     const home = await get(port, '/home');
     const homeHtml = home.body.toString();
-    ok('GET /home', home.status === 200 && homeHtml.includes('Pulse API') && homeHtml.includes('Aquí están las carpetas'));
-    ok('Home con la fila de iconos de Apireon', /class="icons"/.test(homeHtml) && homeHtml.includes('href="/information"')
-      && homeHtml.includes('href="/docs"') && homeHtml.includes('data-search-btn') && homeHtml.includes('Sigue mi cuenta de GitHub'));
-    ok('Home con barra de estado (ESTADO / RUTAS / ENDPOINTS)', /Estado:/i.test(homeHtml) && /Rutas:/i.test(homeHtml) && /Endpoints:/i.test(homeHtml));
-    ok(`Home muestra ${t.routers} routers / ${t.endpoints} endpoints`, homeHtml.includes(String(t.endpoints)));
-    ok('Home lista las 6 categorías como carpetas (VER)', CATEGORIES.every(c => homeHtml.includes(`/${c.id}`)) && (homeHtml.match(/class="row folder"/g) || []).length === CATEGORIES.length && homeHtml.includes('cat-ver'));
-    const folderOrder = [...homeHtml.matchAll(/class="row folder" href="\/([^"]+)"/g)].map(m => m[1]);
-    ok('Carpetas ordenadas alfabéticamente', JSON.stringify(folderOrder) === JSON.stringify([...folderOrder].sort()));
+    ok('GET /home', home.status === 200 && (homeHtml.includes('PULSE API') || homeHtml.includes('Pulse API')) && homeHtml.includes('api-container'));
+    ok('Home con la fila de iconos de Drive', homeHtml.includes('left-controls') && homeHtml.includes('href="/information"')
+      && homeHtml.includes('search-trigger') && homeHtml.includes('Follow my github account'));
+    ok('Home con barra de estado (STATUS: ONLINE / ROUTERS / ENDPOINTS)', /STATUS: ONLINE/i.test(homeHtml) && /stat-routers/i.test(homeHtml) && /stat-endpoints/i.test(homeHtml));
+    ok('Home carga dinámicamente las categorías desde /docs', homeHtml.includes('loadDynamicMenu') && homeHtml.includes('/docs'));
+    ok('Home contenedor de lista de categorías', homeHtml.includes('id="category-list"') && homeHtml.includes('PULSE STORE'));
 
     for (const cat of CATEGORIES) {
       const page = await get(port, `/${cat.id}`);
@@ -71,8 +69,8 @@ async function main() {
     ok('GET / muestra el mismo dashboard que /home', root.status === 200 && root.type.includes('text/html') && root.body.toString() === homeHtml);
     const landing = await get(port, '/welcome');
     const landingHtml = landing.body.toString();
-    ok('Portada anterior disponible en /welcome', landing.status === 200 && landingHtml.includes('Initialize dashboard') && landingHtml.includes('href="/home"'));
-    ok('Portada anterior conserva el video', landingHtml.includes('/media/dashboardvid.mp4') && landingHtml.includes('class="hero"'));
+    ok('Portada disponible en /welcome', landing.status === 200 && landingHtml.includes('INITIALIZE DASHBOARD') && landingHtml.includes('href="/home"'));
+    ok('Portada conserva info-container y gifs de Drive', landingHtml.includes('id="info-container"') && landingHtml.includes('PULSE STORE'));
     ok('Diseño usa la fuente local y tarjeta de 414 × 625', catCss.includes('ShareTechMono-Regular.ttf') && catCss.includes('max-width: 414px') && catCss.includes('min(625px'));
     const font = await get(port, '/fonts/ShareTechMono-Regular.ttf');
     ok('Fuente Share Tech Mono disponible', font.status === 200 && font.body.length > 40000);
