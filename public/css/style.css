@@ -22,18 +22,28 @@
 }
 
 :root {
+  --primary: #000;
+  --secondary: #777;
+  --bg-card: #ffffff;
+  --border: #ececec;
+  --dot-color: #d1d1d1;
+  --dot-pattern: radial-gradient(var(--dot-color) 1px, transparent 1px);
+  --sk-base: #f0f0f0;
   --ink: #000;
   --muted: #737373;
-  --border: #eaeaea;
-  --dots: radial-gradient(#d1d1d1 1px, transparent 1px);
+  --dots: var(--dot-pattern);
 }
 * { box-sizing: border-box; }
 body {
+  font-family: "Share Tech Mono", monospace;
   margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
-  font-family: 'Share Tech Mono', monospace;
-  color: var(--ink);
-  background: #fff var(--dots) 0 0 / 20px 20px;
+  background-image: var(--dot-pattern);
+  background-size: 20px 20px;
+  color: var(--primary);
   -webkit-font-smoothing: antialiased;
 }
 button, input, select, textarea { font-family: inherit; }
