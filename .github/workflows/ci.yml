@@ -1,0 +1,24 @@
+# CI — valida el catálogo y renderiza todos los canvas en cada push / PR.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Catálogo (ids, parámetros, canvas ↔ catálogo)
+        run: npm run check
+      - name: Lint (variables, claves duplicadas y código inalcanzable)
+        run: npm run lint
+      - name: Smoke, todos los endpoints y proveedores simulados
+        run: npm test

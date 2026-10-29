@@ -1,0 +1,48 @@
+name: ➕ Endpoint o canvas nuevo
+description: Pedir (o proponer) un endpoint nuevo para la API
+title: "[endpoint] "
+labels: ["endpoint"]
+# Guía paso a paso: GUIA-ENDPOINTS-GITHUB.md
+body:
+  - type: input
+    id: nombre
+    attributes:
+      label: Nombre del endpoint
+      description: El id que iría en la URL, en minúsculas y sin espacios.
+      placeholder: "ejemplo: emoji"
+    validations:
+      required: true
+  - type: dropdown
+    id: categoria
+    attributes:
+      label: Categoría
+      options:
+        - anime
+        - canvas
+        - tools
+        - downloader
+        - searcher
+        - reactions
+        - categoría nueva
+    validations:
+      required: true
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: ¿Qué hace?
+      description: Una línea, como aparecería en la web y en /docs.
+    validations:
+      required: true
+  - type: textarea
+    id: parametros
+    attributes:
+      label: Parámetros
+      description: Nombre, ejemplo y si es requerido u opcional.
+      placeholder: |
+        text (requerido) — "hola" — texto principal
+        size (opcional) — 1 — escala 0.5 a 2
+  - type: textarea
+    id: ejemplo
+    attributes:
+      label: Ejemplo de respuesta / imagen de referencia
+      description: Pegá un JSON de ejemplo o una captura del resultado esperado.

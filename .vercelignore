@@ -1,0 +1,6 @@
+# Archivos que no hacen falta en el deploy de Vercel
+node_modules/
+tmp-canvas/
+scripts/
+*.log
+.env
