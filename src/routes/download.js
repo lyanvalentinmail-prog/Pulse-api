@@ -17,7 +17,7 @@ const wantDirect = (req, kinds = ['true']) => {
   if (wantsDownload(req)) return kinds.includes('mp4') ? 'mp4' : kinds[0];
   return null;
 };
-const cleanName = (s, fb = 'Velirius') =>
+const cleanName = (s, fb = 'Pulse') =>
   String(s || fb).normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_').slice(0, 60) || fb;
 
 const handle = fn => async (req, res) => {
@@ -215,7 +215,7 @@ router.get(['/instagram', '/ig'], handle(async (req, res) => {
   if (wantDirect(req, ['true', '1', 'mp4', 'jpg', 'image', 'video']) && lista[i]) {
     const m = lista[i];
     return proxyStream(req, res, m.url, {
-      filename: `velirius-ig-${info.shortcode || 'post'}-${i + 1}.${m.type === 'video' ? 'mp4' : 'jpg'}`,
+      filename: `pulse-ig-${info.shortcode || 'post'}-${i + 1}.${m.type === 'video' ? 'mp4' : 'jpg'}`,
       headers: { Referer: 'https://www.instagram.com/', 'User-Agent': UA_DESKTOP }
     });
   }

@@ -49,7 +49,7 @@ async function difference(a, b) {
 
 /** Decodifica los frames reales del MP4 para verificar tiempos y contenido. */
 function decodeVideo(buf, { firstOnly = false } = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'velirius-test-brat-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-test-brat-'));
   try {
     const file = path.join(dir, 'video.mp4');
     fs.writeFileSync(file, buf);

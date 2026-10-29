@@ -36,7 +36,7 @@ for (const kind of ['neko', 'waifu', 'maid']) {
     const elegida = data.images[indexOf(req) - 1] || data.images[0];
     if (wantsDirect(req) && elegida) {
       const ext = /\.png/i.test(elegida.image) ? 'png' : /\.webp/i.test(elegida.image) ? 'webp' : /\.gif/i.test(elegida.image) ? 'gif' : 'jpg';
-      return proxyStream(req, res, elegida.image, { filename: `velirius-${kind}-${indexOf(req)}.${ext}` });
+      return proxyStream(req, res, elegida.image, { filename: `pulse-${kind}-${indexOf(req)}.${ext}` });
     }
     return {
       kind: data.kind,
@@ -63,7 +63,7 @@ router.get('/pokemon', handle(async (req, res) => {
   const data = await P.pokemon(req.query.query || req.query.q || req.query.name || 'pikachu', shiny);
   if (wantsDirect(req)) {
     if (!data.image) throw new Error('Este Pokémon no tiene arte oficial disponible');
-    return proxyStream(req, res, data.image, { filename: `velirius-${data.name}.png` });
+    return proxyStream(req, res, data.image, { filename: `pulse-${data.name}.png` });
   }
   return data;
 }));

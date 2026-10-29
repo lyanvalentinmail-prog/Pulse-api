@@ -41,14 +41,14 @@ module.exports = {
   groups: GROUPS,
   endpoints: [
     { id: 'quotly', group: 'textos', desc: 'Genera un sticker PNG transparente estilo Quotly con avatar circular y burbuja de chat.', params: [
-      P('text', 'Welcome to Velirius Api', 'Mensaje del sticker'),
-      O('username', 'Velirius Api', 'Nombre del usuario'),
+      P('text', 'Welcome to Pulse Api', 'Mensaje del sticker'),
+      O('username', 'Pulse Api', 'Nombre del usuario'),
       O('image', AV, 'Avatar opcional (URL o imagen de tu galería)'),
       O('bg', '000000', 'Color hexadecimal de la burbuja'),
       ...textStyle()
     ] },
     { id: 'brat', group: 'brats', desc: 'Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color.', params: [
-      P('text', 'Welcome to Velirius API 💚✨', 'Texto del sticker'),
+      P('text', 'Welcome to Pulse API 💚✨', 'Texto del sticker'),
       O('bg', 'ffffff', 'Fondo hex sin #'),
       O('canvas.size', '736', 'Lado del PNG en píxeles (200 - 2000)'),
       ...textStyle(),
@@ -56,7 +56,7 @@ module.exports = {
       O('text.weight', '400', 'Grosor de la tipografía (400 - 900)')
     ] },
     { id: 'bratvideo', group: 'brats', desc: 'Video MP4 como el de Drive: palabras que aparecen progresivamente y emojis a color.', media: 'video', params: [
-      P('text', 'Welcome to Velirius API 💚🔥', 'Frase animada palabra por palabra (admite emojis)'),
+      P('text', 'Welcome to Pulse API 💚🔥', 'Frase animada palabra por palabra (admite emojis)'),
       O('words', '5', 'Cuántas palabras entran como máximo en cada pantalla (1 - 8)'),
       O('bg', 'ffffff', 'Color de fondo hex (ej. 8ACE00 o ffffff)'),
       O('canvas.size', '512', 'Lado del video en píxeles (200 - 2000; se redondea a par)'),
@@ -75,15 +75,15 @@ module.exports = {
       O('lens.y', '0.5', 'Altura del centro de la esfera (0 - 1)')
     ] },
     { id: 'bratanime', group: 'brats', desc: 'Maid de anime sosteniendo tu texto', params: [
-      P('text', 'Welcome to Velirius API', 'Texto del cartel'),
+      P('text', 'Welcome to Pulse API', 'Texto del cartel'),
       ...textStyle()
     ] },
     { id: 'bratcoyote', group: 'brats', desc: 'El Coyote sosteniendo tu cartel (letra a mano, igual que la plantilla)', params: [
-      P('text', 'Welcome to Velirius API', 'Texto del cartel (sale en MAYÚSCULAS, como la plantilla)'),
+      P('text', 'Welcome to Pulse API', 'Texto del cartel (sale en MAYÚSCULAS, como la plantilla)'),
       ...textStyle()
     ] },
     { id: 'bratpinguino', group: 'brats', desc: 'Gunter (pingüino) con cartel: texto o imagen', params: [
-      O('text', 'Welcome to Velirius API', 'Texto del cartel'),
+      O('text', 'Welcome to Pulse API', 'Texto del cartel'),
       O('image', '', 'URL de imagen para el cartel (reemplaza el texto)'),
       S('mode', '', 'auto = decide por parámetros', ['', 'text', 'image']),
       ...textStyle()
@@ -95,7 +95,7 @@ module.exports = {
       O('size', '1', 'Escala del texto (0.5 - 2)')
     ] },
     { id: 'attp', group: 'textos', desc: 'Texto animado arcoíris (WebM sticker)', media: 'video', params: [
-      P('text', 'Welcome to Velirius', 'Texto animado'),
+      P('text', 'Welcome to Pulse', 'Texto animado'),
       O('size', '1', 'Escala del texto (0.5 - 2)')
     ] },
     { id: 'iqc', group: 'textos', desc: 'Genera una captura estilo WhatsApp iOS en modo oscuro con barra de reacciones y menú contextual.', params: [
@@ -118,7 +118,7 @@ module.exports = {
       ...textStyle()
     ] },
     { id: 'profilenote', group: 'textos', desc: 'Nota de perfil de WhatsApp ("Tu nota"): globo oscuro que crece, avatar circular y etiqueta.', params: [
-      P('text', 'Welcome to Velirius API', 'Texto de la nota'),
+      P('text', 'Welcome to Pulse API', 'Texto de la nota'),
       O('image', AV, 'Foto del avatar (URL o imagen de tu galería)'),
       O('label', 'Tu nota', 'Etiqueta de abajo'),
       ...textStyle()
@@ -156,7 +156,7 @@ module.exports = {
       O('color', 'ffffff', 'Color del texto hex sin #')
     ] },
     { id: 'bobesponja', group: 'brats', desc: 'Bob Esponja muestra una hoja: texto o imagen', params: [
-      O('text', 'Welcome to Velirius API', 'Texto en la hoja'),
+      O('text', 'Welcome to Pulse API', 'Texto en la hoja'),
       O('url', '', 'Imagen para la hoja (reemplaza el texto)'),
       S('mode', '', 'auto = decide por parámetros', ['', 'text', 'image']),
       ...textStyle()
@@ -219,16 +219,16 @@ module.exports = {
       O('zoom', '1', 'Zoom de la foto')
     ] },
     { id: 'pokemoncard', group: 'imagenes', desc: 'Carta Pokémon personalizada', params: [
-      P('name', 'Velirius', 'Nombre de la carta'),
+      P('name', 'Pulse', 'Nombre de la carta'),
       O('hp', '120', 'Puntos de salud'),
       P('url', AV, 'Arte de la carta'),
       O('type', 'Legendario', 'Tipo'),
       O('attack', 'Golpe API', 'Nombre del ataque'),
       O('damage', '90', 'Daño del ataque'),
-      O('description', 'Una carta creada con Velirius API.', 'Descripción')
+      O('description', 'Una carta creada con Pulse API.', 'Descripción')
     ] },
     { id: 'ship', group: 'porcentajes', desc: 'Genera una tarjeta de medidor de compatibilidad con avatares recortados en corazón.', params: [
-      P('name1', 'Velirius', 'Primer nombre'),
+      P('name1', 'Pulse', 'Primer nombre'),
       P('name2', 'dls', 'Segundo nombre'),
       O('percentage', '85', 'Porcentaje opcional (0-100)'),
       O('text', 'Best Friends', 'Etiqueta personalizada (ej. Best Friends)'),
@@ -236,7 +236,7 @@ module.exports = {
       O('image2', AV2, 'Segundo avatar (URL o imagen de tu galería)')
     ] },
     { id: 'friendship', group: 'porcentajes', desc: 'Genera una tarjeta de medidor de amistad con avatares circulares y porcentaje.', params: [
-      P('name1', 'Velirius', 'Primer nombre'),
+      P('name1', 'Pulse', 'Primer nombre'),
       P('name2', 'dls', 'Segundo nombre'),
       O('percentage', '85', 'Porcentaje opcional (0-100)'),
       O('text', 'Best Friends', 'Etiqueta personalizada (ej. Best Friends)'),
@@ -245,7 +245,7 @@ module.exports = {
     ] },
     { id: 'gaycard', group: 'porcentajes', desc: 'Tarjeta GAY PERCENTAGE', params: [
       P('url', AV, 'Foto'),
-      O('name', 'Velirius', 'Nombre'),
+      O('name', 'Pulse', 'Nombre'),
       O('percentage', '12', 'Porcentaje opcional (0-100)')
     ] },
     { id: 'gay', group: 'filtros', desc: 'Filtro arcoíris sobre tu foto', params: [

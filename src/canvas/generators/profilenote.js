@@ -19,7 +19,7 @@ module.exports = async function profilenote(q) {
   const { buf, width: W, height: H } = await templateMeta(parts.template);
   const family = ov.font || parts.msg.font.family;
 
-  const raw = txt(q, 'Welcome to Velirius API');
+  const raw = txt(q, 'Welcome to Pulse API');
   const message = ov.uppercase ? raw.toUpperCase() : raw;
   const labelRaw = String(q.label ?? q.nota ?? parts.label.text ?? 'Tu nota').slice(0, 40);
 

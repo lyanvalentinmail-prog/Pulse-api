@@ -55,7 +55,7 @@ async function nekosBest(tag, amount = 1) {
 //   danbooru   → rating:g   (general = sin desnudos)
 //   safebooru  → rating:general (el sitio ya es la copia SFW de danbooru)
 //   konachan.net → rating:safe (el dominio .net es el espejo SFW)
-const BOORU_UA = { 'User-Agent': UA_DESKTOP, Referer: 'https://velirius.app/' };
+const BOORU_UA = { 'User-Agent': UA_DESKTOP, Referer: 'https://pulse.app/' };
 const randomPage = max => Math.floor(Math.random() * max);
 const httpsUrl = url => (!url ? null : String(url).startsWith('http') ? String(url) : `https://${url}`);
 /** Tamaño real de la variante que devolvemos como `image` (danbooru trae varias). */
@@ -1177,7 +1177,7 @@ async function previewAudio(query, limit = 1) {
 async function lyricsSearch(query, limit) {
   let j = null;
   try {
-    j = await fetchJson(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`, { headers: { 'Lrclib-Client': 'Velirius-API' } });
+    j = await fetchJson(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`, { headers: { 'Lrclib-Client': 'Pulse-API' } });
   } catch (_) { j = null; }
   if (!Array.isArray(j) || !j.length) {
     const sug = await fetchJson(`https://api.lyrics.ovh/suggest/${encodeURIComponent(query)}`);

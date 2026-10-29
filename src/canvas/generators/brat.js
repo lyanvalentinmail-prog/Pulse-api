@@ -3,5 +3,5 @@ const { txt } = require('./_helpers');
 const { bratSpec, renderBrat } = require('../../utils/brat');
 
 module.exports = async function brat(q = {}) {
-  return renderBrat(txt(q, 'Welcome to Velirius API'), bratSpec(q));
+  return renderBrat(txt(q, 'Welcome to Pulse API'), bratSpec(q));
 };

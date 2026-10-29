@@ -210,7 +210,7 @@ const entradaFfmpeg = url => (/^https?:/i.test(String(url))
   ? ['-headers', `User-Agent: ${UA_DESKTOP}\r\n`]
   : []);
 
-const MUX_DIR = path.join(os.tmpdir(), 'velirius-yt');
+const MUX_DIR = path.join(os.tmpdir(), 'pulse-yt');
 const MUX_TTL = 15 * 60 * 1000;
 
 function limpiarTemporales() {
@@ -271,7 +271,7 @@ async function urlViva(url) {
 // ---------------------------------------------------------------------------
 // Audio en MP3 (para /downloader/play y /downloader/mp3)
 // ---------------------------------------------------------------------------
-const AUDIO_DIR = path.join(os.tmpdir(), 'velirius-audio');
+const AUDIO_DIR = path.join(os.tmpdir(), 'pulse-audio');
 const AUDIO_TTL = 60 * 60 * 1000;
 
 function limpiarAudio() {
@@ -291,7 +291,7 @@ function limpiarAudio() {
  * Baja el audio de un video y lo convierte a MP3 de verdad.
  * Así el navegador lo reproduce siempre (y el archivo se puede descargar como
  * .mp3), sin depender de que el enlace temporal de googlevideo siga vivo.
- * El MP3 queda en `os.tmpdir()/velirius-audio` y se reutiliza una hora.
+ * El MP3 queda en `os.tmpdir()/pulse-audio` y se reutiliza una hora.
  */
 async function audioArchivo(id, { bitrate = '160k' } = {}) {
   fs.mkdirSync(AUDIO_DIR, { recursive: true });

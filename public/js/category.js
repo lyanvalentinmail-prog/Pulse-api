@@ -4,7 +4,7 @@
 // REQUERIDO/OPCIONAL (los estilos van plegados en "Opciones avanzadas"), el botón
 // TEST grande y el resultado con 200 OK + tipo + ms + DESCARGAR sobre damero.
 (function () {
-  const data = window.VELIRIUS || { category: '', endpoints: [] };
+  const data = window.PULSE || { category: '', endpoints: [] };
   const byId = {};
   data.endpoints.forEach(e => { byId[e.id] = e; });
 
@@ -132,16 +132,16 @@
     if (Object.keys(local).length) {
       return fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-velirius-client': 'ui' },
+        headers: { 'Content-Type': 'application/json', 'x-pulse-client': 'ui' },
         body: JSON.stringify({ ...paramValues(tester), ...local })
       });
     }
-    const res = await fetch(path, { headers: { 'x-velirius-client': 'ui' } });
+    const res = await fetch(path, { headers: { 'x-pulse-client': 'ui' } });
     const saved = allLocalImages(tester);
     if (!res.ok && Object.keys(saved).length) {
       return fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-velirius-client': 'ui' },
+        headers: { 'Content-Type': 'application/json', 'x-pulse-client': 'ui' },
         body: JSON.stringify({ ...paramValues(tester), ...saved })
       });
     }
@@ -250,7 +250,7 @@
   const btnDescargar = (href, nombre, externo = false) =>
     externo
       ? `<a class="chip-btn dl" href="${esc(href)}" target="_blank" rel="noopener" title="Abrir ${esc(nombre || 'archivo')} para guardarlo">Descargar</a>`
-      : `<a class="chip-btn dl" href="${esc(href)}" download="${esc(nombre || 'velirius')}" rel="noopener" title="Descargar ${esc(nombre || 'archivo')}">Descargar</a>`;
+      : `<a class="chip-btn dl" href="${esc(href)}" download="${esc(nombre || 'pulse')}" rel="noopener" title="Descargar ${esc(nombre || 'archivo')}">Descargar</a>`;
 
   /**
    * Botón de descarga para CUALQUIER endpoint: si el JSON trae un archivo
@@ -278,7 +278,7 @@
     if (directo.startsWith('/') || /^(https?:)\/\/[^/]+\/(canvas|downloader|anime|searcher|reactions|tools)\//.test(directo)) {
       return { href: directo, proxy: false };
     }
-    const nombre = (r.title || r.query || endpoint || 'velirius').toString();
+    const nombre = (r.title || r.query || endpoint || 'pulse').toString();
     const ext = /video|mp4/i.test(type) ? 'mp4' : /audio|mpeg|mp3/i.test(type) ? 'mp3' : (String(directo).match(/\.([a-z0-9]{2,5})(?:\?|$)/i) || [])[1] || 'jpg';
     // Enlace externo (CDN de TikTok, YouTube, Pinterest…): se abre en una pestaña
     // nueva; el navegador decide si lo muestra o lo guarda.

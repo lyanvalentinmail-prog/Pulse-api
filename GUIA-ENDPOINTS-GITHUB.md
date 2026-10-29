@@ -12,7 +12,7 @@ Vercel publica el cambio solo.
 ## 1. Lo que necesitás
 
 - Una cuenta de GitHub con permiso de escritura en
-  [`lyanvalentinmail-prog/Velirius-api`](https://github.com/lyanvalentinmail-prog/Velirius-api)
+  [`lyanvalentinmail-prog/Pulse-api`](https://github.com/lyanvalentinmail-prog/Pulse-api)
   (owner, colaborador o miembro de la organización).
 - Nada más. No hace falta clonar, ni Node, ni VS Code.
 
@@ -59,7 +59,7 @@ No se edita `main` directamente salvo cambios de **textos** (una coma, una descr
 Ejemplo real: cambiar la descripción del endpoint `/tools/morse` y su ejemplo.
 
 1. Abrí el archivo:
-   [`src/catalog/tools.js`](https://github.com/lyanvalentinmail-prog/Velirius-api/blob/main/src/catalog/tools.js)
+   [`src/catalog/tools.js`](https://github.com/lyanvalentinmail-prog/Pulse-api/blob/main/src/catalog/tools.js)
 2. Arriba a la derecha del recuadro del código, tocá el **lápiz ✏️** (*Edit this file*).
 3. Buscá la entrada y cambiala. Antes:
 
@@ -201,7 +201,7 @@ module.exports = async function miCanvas(q) {
 Los helpers disponibles están en `src/canvas/core.js` (`photoPart`, `facePart`, `textPart`,
 `signPart`, `meter`, `styleOf`, `numberIn`, `flag`…). Copiar un generador parecido es la vía
 más rápida: están todos en
-[`src/canvas/generators/`](https://github.com/lyanvalentinmail-prog/Velirius-api/tree/main/src/canvas/generators).
+[`src/canvas/generators/`](https://github.com/lyanvalentinmail-prog/Pulse-api/tree/main/src/canvas/generators).
 
 ### 7.3 Las medidas — `src/canvas/layouts.js`
 

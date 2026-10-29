@@ -28,7 +28,7 @@ module.exports = {
       O('degrees', 'false', 'true = trigonometría en grados')
     ] },
     { id: 'translator', desc: 'Traduce texto entre idiomas (Google + MyMemory)', params: [
-      P('text', 'Hola, bienvenido a Velirius API', 'Texto a traducir'),
+      P('text', 'Hola, bienvenido a Pulse API', 'Texto a traducir'),
       O('to', 'en', 'Idioma destino (en, es, pt, fr, ja…)'),
       O('from', 'auto', 'Idioma origen o auto')
     ] },
@@ -45,7 +45,7 @@ module.exports = {
       O('download', 'false', 'true = baja el archivo como adjunto')
     ] },
     { id: 'tts', desc: 'TextToSpeech: convierte texto en un MP3 de voz', media: 'audio', params: [
-      P('text', 'Hola, soy Velirius API', 'Texto a leer (máx. 3000 caracteres)'),
+      P('text', 'Hola, soy Pulse API', 'Texto a leer (máx. 3000 caracteres)'),
       O('lang', 'es', 'Idioma de la voz (es, en, pt, fr, ja…)'),
       O('voice', '', 'Voz de StreamElements (ej. Brian) si hace falta el respaldo'),
       S('engine', 'auto', 'Motor: auto = Google y después StreamElements', ['auto', 'google', 'streamelements']),

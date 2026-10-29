@@ -52,7 +52,7 @@ async function bratFrame(text, opts = {}, size = null) {
  */
 async function bratVideo(text, opts = {}) {
   const perPage = Math.max(1, Math.min(8, Math.round(Number(opts.words) || BRAT_WORDS_PER_PAGE)));
-  const value = String(text || 'Welcome to Velirius API').trim();
+  const value = String(text || 'Welcome to Pulse API').trim();
   // Limitar por grafemas evita cortar un emoji compuesto o un par sustituto.
   const segmenter = new Intl.Segmenter('es', { granularity: 'grapheme' });
   let clean = '';
@@ -72,7 +72,7 @@ async function bratVideo(text, opts = {}) {
   const pages = [];
   for (let i = 0; i < words.length; i += perPage) pages.push(words.slice(i, i + perPage));
   const emojis = await emojiImages(spec.uppercase ? clean.toUpperCase() : clean.toLowerCase());
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'velirius-brat-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-brat-'));
   try {
     let n = 0;
     for (const page of pages) {
@@ -125,10 +125,10 @@ async function attpFrame(text, color, dx, opts = {}) {
 }
 
 async function attpVideo(text, opts = {}) {
-  const clean = String(text || 'Welcome to Velirius').trim().slice(0, 60);
+  const clean = String(text || 'Welcome to Pulse').trim().slice(0, 60);
   const key = `attp:${clean}:${opts.size || 1}`;
   if (cache.has(key)) return cache.get(key);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'velirius-attp-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-attp-'));
   try {
     const frames = 16;
     for (let i = 0; i < frames; i++) {

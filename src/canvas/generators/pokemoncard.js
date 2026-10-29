@@ -13,12 +13,12 @@ module.exports = async function pokemoncard(q) {
   const { buf, width: W, height: H } = await templateMeta(parts.template);
   const user = await loadImageBuffer(imgParam(q, 'url', 'image', 'img'));
   const clip = (v, fb, n) => String(v ?? fb).trim().slice(0, n) || fb;
-  const name = clip(q.name, 'Velirius', 20);
+  const name = clip(q.name, 'Pulse', 20);
   const hp = clip(String(q.hp || '120').replace(/[^0-9]/g, ''), '120', 4);
   const type = clip(q.type, 'Legendario', 22);
   const attack = clip(q.attack, 'Golpe API', 26);
   const damage = clip(String(q.damage || '90').replace(/[^0-9+]/g, ''), '90', 5);
-  const description = clip(q.description ?? q.desc, 'Una carta creada con Velirius API.', 220);
+  const description = clip(q.description ?? q.desc, 'Una carta creada con Pulse API.', 220);
 
   const layers = [
     await placeImageArea(W, H, boxOf('pokemoncard', 'photo', q), user, {

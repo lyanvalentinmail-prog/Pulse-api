@@ -50,7 +50,7 @@ function signPart(id, q, opts = {}) {
     ? C.flag(upperRaw)
     : Boolean(parts.text.font.uppercase ?? parts.text.uppercase ?? t.uppercase);
   return C.signCanvas(parts.template, area, q, {
-    defaultText: opts.defaultText || 'Welcome to Velirius API',
+    defaultText: opts.defaultText || 'Welcome to Pulse API',
     imageRadius: parts.sign.radius || 0,
     textOpts: {
       family: t.family,
@@ -130,7 +130,7 @@ async function meter(kind, q) {
   const H = Math.round(P.num(q, 'canvas', 'height', parts.canvas.height, 200, 3000));
   const bg = ov.bg || P.bg(q, 'canvas', parts.canvas.bg);
 
-  const name1 = String(q.name1 || 'Velirius').slice(0, 20);
+  const name1 = String(q.name1 || 'Pulse').slice(0, 20);
   const name2 = String(q.name2 || 'dls').slice(0, 20);
   const pct = parsePercent(q.percentage ?? q.percent ?? q.rank);
   const phrase = String(q.text || 'Best Friends').slice(0, 26);
