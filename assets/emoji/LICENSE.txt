@@ -1,0 +1,17 @@
+Emojis a color de Velirius API
+==============================
+
+`twitter-64.png` es una hoja de sprites con los emojis de **Twemoji**
+(https://github.com/jdecked/twemoji, antes twitter/twemoji), licencia
+**CC-BY 4.0** — gráficos creados por Twitter, Inc. y colaboradores.
+
+Las imágenes se obtuvieron del paquete npm `emoji-datasource-twitter`
+(proyecto emoji-data, MIT, © 2013 Cal Henderson) y se empaquetaron acá en una
+sola imagen para que el render no dependa de la red.
+
+`index.json` es la lista de nombres (códigos hexadecimales de cada emoji) en el
+orden en que están acomodados en la grilla, de izquierda a derecha y de arriba
+hacia abajo.
+
+Atribución requerida por CC-BY 4.0: «Emoji images © Twitter, Inc. and other
+contributors, licensed under CC-BY 4.0».

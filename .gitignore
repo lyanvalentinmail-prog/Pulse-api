@@ -1,0 +1,10 @@
+node_modules/
+google_drive/
+sheet*.jpg
+*.log
+.env
+tmp-canvas/
+out*.jpg
+check*.jpg
+grid*.jpg
+videoframes.jpg
