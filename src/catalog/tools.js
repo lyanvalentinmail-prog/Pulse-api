@@ -22,6 +22,7 @@ const { P, O, S, AV } = require('./helpers');
 module.exports = {
   id: 'tools',
   name: 'TOOLS',
+  desc: 'QR, hash, base64, uuid y utilidades',
   endpoints: [
     { id: 'calculator', desc: 'Calculadora scientific: resuelve expresiones matemáticas', params: [
       P('expr', '(2+3)*4^2 + sqrt(81)', 'Expresión: + - * / % ^ ( ) sqrt() sin() cos() pi e…'),

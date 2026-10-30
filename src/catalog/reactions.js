@@ -22,6 +22,7 @@ const { O, S } = require('./helpers');
 module.exports = {
   id: 'reactions',
   name: 'REACTIONS',
+  desc: 'GIFs de reacciones y stickers animados',
   endpoints: Object.entries(require('../utils/providers').REACTIONS).map(([id, label]) => ({
     id,
     desc: `GIF de ${label.toLowerCase()} (nekos.best · purrbot · otakugifs)`,

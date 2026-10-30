@@ -22,6 +22,7 @@ const { P, O, S } = require('./helpers');
 module.exports = {
   id: 'downloader',
   name: 'DOWNLOADER',
+  desc: 'Video y audio de las principales redes',
   endpoints: [
     { id: 'tiktok', desc: 'TikTok SIN marca de agua (video HD + audio MP3)', params: [
       P('url', 'https://vt.tiktok.com/ZS43DntHW/', 'URL del TikTok'),

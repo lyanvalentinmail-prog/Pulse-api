@@ -38,6 +38,7 @@ const GROUPS = [
 module.exports = {
   id: 'canvas',
   name: 'CANVAS',
+  desc: 'Memes e imágenes generadas al vuelo',
   groups: GROUPS,
   endpoints: [
     { id: 'quotly', group: 'textos', desc: 'Genera un sticker PNG transparente estilo Quotly con avatar circular y burbuja de chat.', params: [

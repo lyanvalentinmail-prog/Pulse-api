@@ -60,7 +60,10 @@ async function main() {
     const catCss = (await get(port, '/css/style.css')).body.toString();
     ok('Botón TEST despliega el panel hacia abajo', catJs.includes('function setOpen') && catJs.includes('tester-inner') && catCss.includes('grid-template-rows: 0fr') && catCss.includes('.tester.open'));
     ok('Parámetros modificables (texto + select + subir foto)', catJs.includes('data-param') && catJs.includes('<select data-param') && catJs.includes('Galería') && catJs.includes('Opcional • URL o varias fotos'));
-    ok('Panel con CÓMO USAR EL ENDPOINT + URL + fetch', catJs.includes('Cómo usar el endpoint') && catJs.includes('code-url') && catJs.includes('code-fetch'));
+    ok('Ficha del endpoint con barra GET, parámetros y botones de copia',
+      catJs.includes('t-bar') && catJs.includes('btn-back') && catJs.includes('Copiar cURL')
+      && catJs.includes('Rellenar ejemplo') && catJs.includes('code-url') && catJs.includes('code-fetch'));
+    ok('El botón principal del probador se llama EJECUTAR', /class="run"[^>]*data-act="exec"/.test(catJs) && catJs.includes('Ejecutar'));
     ok('Chips REQUERIDO/OPCIONAL por parámetro', catJs.includes('chip-opt') && catJs.includes('Requerido') && catJs.includes('Opcional'));
     ok('Resultado con 200 OK, ms y DESCARGAR', catJs.includes('chip-status') && catJs.includes('res-meta') && catJs.includes('Descargar'));
 
@@ -69,9 +72,10 @@ async function main() {
     ok('GET / muestra el mismo dashboard que /home', root.status === 200 && root.type.includes('text/html') && root.body.toString() === homeHtml);
     const landing = await get(port, '/welcome');
     const landingHtml = landing.body.toString();
-    ok('Portada disponible en /welcome', landing.status === 200 && landingHtml.includes('INITIALIZE DASHBOARD') && landingHtml.includes('href="/home"'));
-    ok('Portada conserva info-container y gifs de Drive', landingHtml.includes('id="info-container"') && landingHtml.includes('PULSE STORE'));
-    ok('Diseño usa la fuente local y tarjeta de 414 × 625', catCss.includes('ShareTechMono-Regular.ttf') && catCss.includes('max-width: 414px') && catCss.includes('min(625px'));
+    ok('Portada disponible en /welcome', landing.status === 200 && landingHtml.includes('INICIALIZAR DASHBOARD') && landingHtml.includes('href="/home"'));
+    ok('Portada con hoja de papel, chips y pie', landingHtml.includes('id="info-container"') && landingHtml.includes('class="chips"')
+      && landingHtml.includes('Aviso importante') && landingHtml.includes('PULSE STORE'));
+    ok('Diseño usa la fuente local y tarjeta de 520 × 760', catCss.includes('ShareTechMono-Regular.ttf') && catCss.includes('max-width: 520px') && catCss.includes('min(760px'));
     const font = await get(port, '/fonts/ShareTechMono-Regular.ttf');
     ok('Fuente Share Tech Mono disponible', font.status === 200 && font.body.length > 40000);
     ok('La pieza del canvas se ve sin marco (damero)', catCss.includes('.preview') && /\.preview img[^{]*\{[^}]*border: 0/.test(catCss));

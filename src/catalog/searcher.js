@@ -22,6 +22,7 @@ const { P, O, S } = require('./helpers');
 module.exports = {
   id: 'searcher',
   name: 'SEARCHER',
+  desc: 'Búsqueda en redes y buscadores',
   endpoints: [
     { id: 'tiktok', desc: 'Busca videos en TikTok con portada, autor y estadísticas (TikWM)', media: 'image', params: [
       P('query', 'anime edit', 'Palabra clave'),
