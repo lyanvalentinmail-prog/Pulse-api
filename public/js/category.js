@@ -309,17 +309,43 @@
     return `<div class="preview"><video src="${esc(p.url)}" controls playsinline preload="metadata"></video></div>`;
   }
 
+  // ---------- Contador de pruebas (HITS) ----------
+  // Se guarda en localStorage por endpoint; /home suma todos para el pie ("N requests").
+  const HITS_KEY = 'pulse:hits';
+  const hitsKey = tester => `${tester.dataset.category}/${tester.dataset.endpoint}`;
+  function readHits() {
+    try { return JSON.parse(localStorage.getItem(HITS_KEY) || '{}') || {}; } catch (_) { return {}; }
+  }
+  function hitsOf(tester) {
+    const value = readHits()[hitsKey(tester)];
+    return Number(value) || 0;
+  }
+  function bumpHits(tester) {
+    try {
+      const hits = readHits();
+      const key = hitsKey(tester);
+      hits[key] = (Number(hits[key]) || 0) + 1;
+      localStorage.setItem(HITS_KEY, JSON.stringify(hits));
+    } catch (_) { /* almacenamiento no disponible */ }
+    paintHits(tester);
+  }
+  function paintHits(tester) {
+    const slot = tester.querySelector('.t-hits');
+    if (slot) slot.textContent = `Hits: ${hitsOf(tester)}`;
+  }
+
   // ---------- Ejecutar ----------
   async function executeTest(tester) {
     const result = tester.querySelector('.result');
     const runBtn = tester.querySelector('[data-act="exec"]');
     const path = buildPath(tester);
-    if (runBtn) { runBtn.disabled = true; runBtn.textContent = 'Probando…'; }
+    if (runBtn) { runBtn.disabled = true; runBtn.innerHTML = '<span class="run-ico" aria-hidden="true">▶</span> Probando…'; }
     result.innerHTML = '<div class="loading">CARGANDO…</div>';
     const t0 = performance.now();
     try {
       const res = await callEndpoint(tester, path);
       const ms = Math.round(performance.now() - t0);
+      bumpHits(tester);
       const type = (res.headers.get('content-type') || '').toLowerCase();
       const okChip = `<span class="chip-status${res.ok ? '' : ' bad'}">${res.status} ${res.ok ? 'OK' : 'ERROR'}</span>`;
 
@@ -384,19 +410,46 @@
     } catch (e) {
       result.innerHTML = `
         <div class="res-bar"><span class="chip-status bad">ERROR DE RED</span><span class="res-meta">0 ms</span></div>
-        <div class="error-box">${esc(e.message)}\n\nPrueba con el botón ABRIR o revisa que el servidor esté levantado.</div>`;
+        <div class="error-box">${esc(e.message)}\n\nPrueba otra vez con el botón EJECUTAR o revisa que el servidor esté levantado.</div>`;
     } finally {
-      if (runBtn) { runBtn.disabled = false; runBtn.textContent = 'Test'; }
+      if (runBtn) { runBtn.disabled = false; runBtn.innerHTML = '<span class="run-ico" aria-hidden="true">▶</span> Ejecutar'; }
     }
   }
 
   // ---------- Abrir / cerrar ----------
+  // Al abrir un endpoint, el encabezado de la tarjeta pasa a mostrar su nombre y su
+  // ruta ("Endpoint ready // /canvas/brat"), como en la captura de referencia.
+  const pageTitle = document.querySelector('.card h1.title');
+  const pageSync = document.querySelector('.card .sync');
+  const pageCard = document.querySelector('.card');
+
+  function paintHeader(tester, open) {
+    if (pageCard) pageCard.classList.toggle('endpoint-open', open);
+    if (!pageTitle) return;
+    if (open) {
+      if (!pageTitle.dataset.original) pageTitle.dataset.original = pageTitle.innerHTML;
+      pageTitle.textContent = String(tester.dataset.endpoint || '').toUpperCase();
+      if (pageSync) {
+        if (!pageSync.dataset.original) pageSync.dataset.original = pageSync.innerHTML;
+        pageSync.textContent = `Endpoint ready // /${tester.dataset.category}/${tester.dataset.endpoint}`;
+      }
+    } else if (pageTitle.dataset.original) {
+      pageTitle.innerHTML = pageTitle.dataset.original;
+      delete pageTitle.dataset.original;
+      if (pageSync && pageSync.dataset.original) {
+        pageSync.innerHTML = pageSync.dataset.original;
+        delete pageSync.dataset.original;
+      }
+    }
+  }
+
   function setOpen(tester, open) {
     if (open) {
       document.querySelectorAll('.tester.open').forEach(other => {
         if (other !== tester) setOpen(other, false);
       });
     }
+    paintHeader(tester, open);
     tester.classList.toggle('open', open);
     tester.setAttribute('aria-hidden', String(!open));
     if ('inert' in tester) tester.inert = !open;
@@ -444,8 +497,9 @@
       } else {
         control = `<input type="text" data-param="${esc(p.name)}" value="${esc(p.value || '')}" spellcheck="false" placeholder="${esc(p.value || '')}">`;
       }
+      const star = p.required ? '<span class="req-star" aria-hidden="true">*</span>' : '';
       return `<div class="param">
-        <div class="param-top"><b>${esc(p.name)}</b><span class="chip-opt${p.required ? ' req' : ''}">${p.required ? 'Requerido' : (gallery ? 'Opcional • URL o varias fotos' : 'Opcional')}</span></div>
+        <div class="param-top"><b>${esc(p.name)}${star}</b><span class="chip-opt${p.required ? ' req' : ''}">${p.required ? 'Requerido' : (gallery ? 'Opcional • URL o varias fotos' : 'Opcional')}</span></div>
         ${p.desc ? `<div class="param-desc">${esc(p.desc)}</div>` : ''}
         <div class="field-row">${control}${up}</div>
         ${previews}
@@ -463,30 +517,41 @@
 
     tester.innerHTML = `
       <div class="tester-inner"><div class="t-pad">
+        <div class="t-bar">
+          <span class="t-method">GET</span>
+          <span class="t-path">/${esc(data.category)}/${esc(id)}</span>
+          <span class="t-stats"><span>Params: ${ep.params.length}</span><span class="t-hits">Hits: 0</span></span>
+        </div>
+
+        <div class="t-actions">
+          <button type="button" class="btn-back" data-act="back">← ${esc(String(data.category || '').toUpperCase())}</button>
+          <span class="t-pill">GET /${esc(data.category)}/${esc(id)}</span>
+        </div>
+
         ${ep.desc ? `<p class="t-desc">${esc(ep.desc)}</p>` : ''}
 
-        <div class="t-use-head">
-          <h4>Cómo usar el endpoint</h4>
-          <div class="t-use-actions">
-            <button type="button" class="chip-btn" data-act="copy">Copiar URL</button>
-            <button type="button" class="chip-btn" data-act="open">Abrir ↗</button>
-          </div>
-        </div>
-        <div class="code">
-          <div class="code-line"><span class="chip-get">GET</span><span class="code-url"></span></div>
-          <div class="code-line faint code-fetch"></div>
-        </div>
-
-        ${ep.params.length ? '<div class="t-params-head">Parámetros</div>' : '<div class="t-params-head">Parámetros</div><div class="param-desc">Este endpoint no necesita parámetros.</div>'}
+        <div class="t-params-head">Parámetros</div>
+        ${ep.params.length ? '' : '<div class="param-desc">Este endpoint no necesita parámetros.</div>'}
         ${basic.map(fieldOf).join('')}
         ${advBlock}
 
-        <button type="button" class="run" data-act="exec">Test</button>
+        <button type="button" class="run" data-act="exec"><span class="run-ico" aria-hidden="true">▶</span> Ejecutar</button>
+
+        <div class="t-tools">
+          <button type="button" data-act="copy">Copiar URL</button>
+          <button type="button" data-act="curl">Copiar cURL</button>
+          <button type="button" data-act="example">Rellenar ejemplo</button>
+        </div>
+
+        <div class="url-box"><span class="code-url"></span></div>
+        <div class="code-fetch" hidden></div>
         <div class="result"></div>
       </div></div>`;
 
     row.insertAdjacentElement('afterend', tester);
+    tester.querySelectorAll('[data-param]').forEach(field => { field.dataset.initial = field.value; });
     refreshUrl(tester);
+    paintHits(tester);
 
     tester.addEventListener('input', () => refreshUrl(tester));
     tester.addEventListener('change', () => refreshUrl(tester));
@@ -570,26 +635,71 @@
     });
 
     tester.querySelector('[data-act="exec"]').addEventListener('click', () => executeTest(tester));
-    tester.querySelector('[data-act="open"]').addEventListener('click', () => {
-      if (Object.keys(localImages(tester)).length) {
-        window.alert('Esa imagen está en tu galería y no se pudo subir: probala con el botón Test (se envía junto al test).');
-        return;
-      }
-      window.open(buildPath(tester), '_blank', 'noopener');
-    });
-    tester.querySelector('[data-act="copy"]').addEventListener('click', async ev => {
-      if (Object.keys(localImages(tester)).length) {
-        window.alert('Esa imagen está en tu galería y no se pudo subir: la URL no la incluye. Probala con el botón Test.');
-        return;
-      }
+
+    // La píldora "GET /categoría/endpoint" abre el endpoint en otra pestaña.
+    const pill = tester.querySelector('.t-pill');
+    if (pill) {
+      pill.title = 'Abrir el endpoint en una pestaña nueva';
+      pill.style.cursor = 'pointer';
+      pill.addEventListener('click', () => {
+        if (Object.keys(localImages(tester)).length) {
+          window.alert('Esa imagen está en tu galería y no se pudo subir: probala con el botón Ejecutar (se envía junto al test).');
+          return;
+        }
+        window.open(buildPath(tester), '_blank', 'noopener');
+      });
+    }
+
+    const avisoLocal = () => {
+      if (!Object.keys(localImages(tester)).length) return false;
+      window.alert('Esa imagen está en tu galería y no se pudo subir: la URL no la incluye. Probala con el botón Ejecutar.');
+      return true;
+    };
+
+    async function copiar(texto, btn, etiqueta) {
       try {
-        await navigator.clipboard.writeText(absolutePath(tester));
-        ev.target.textContent = '¡Copiada!';
-        setTimeout(() => { ev.target.textContent = 'Copiar URL'; }, 1400);
+        await navigator.clipboard.writeText(texto);
+        btn.textContent = '¡Copiado!';
+        setTimeout(() => { btn.textContent = etiqueta; }, 1300);
       } catch (_) {
-        window.prompt('Copia la URL:', absolutePath(tester));
+        window.prompt('Copia el texto:', texto);
       }
+    }
+
+    tester.querySelector('[data-act="copy"]').addEventListener('click', ev => {
+      if (avisoLocal()) return;
+      copiar(absolutePath(tester), ev.currentTarget, 'Copiar URL');
     });
+
+    const curlBtn = tester.querySelector('[data-act="curl"]');
+    if (curlBtn) {
+      curlBtn.addEventListener('click', ev => {
+        if (avisoLocal()) return;
+        copiar(`curl -s -L "${absolutePath(tester)}"`, ev.currentTarget, 'Copiar cURL');
+      });
+    }
+
+    // Vuelve a los valores de ejemplo de todos los campos, como recién abierto.
+    const exampleBtn = tester.querySelector('[data-act="example"]');
+    if (exampleBtn) {
+      exampleBtn.addEventListener('click', () => {
+        tester.querySelectorAll('[data-param]').forEach(field => {
+          field.value = field.dataset.initial ?? field.defaultValue ?? '';
+          delete field.dataset.local;
+          delete field.dataset.pending;
+        });
+        tester.querySelectorAll('.gallery-row').forEach(row => {
+          row.querySelectorAll('.up-thumb').forEach(t => t.remove());
+          row.hidden = true;
+        });
+        const resultBox = tester.querySelector('.result');
+        if (resultBox) resultBox.innerHTML = '';
+        refreshUrl(tester);
+      });
+    }
+
+    const backBtn = tester.querySelector('[data-act="back"]');
+    if (backBtn) backBtn.addEventListener('click', () => setOpen(tester, false));
 
     const testBtn = row.querySelector('[data-test-btn]');
     if (testBtn) testBtn.addEventListener('click', () => setOpen(tester, !tester.classList.contains('open')));

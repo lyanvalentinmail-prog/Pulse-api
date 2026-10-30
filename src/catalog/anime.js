@@ -22,6 +22,7 @@ const { P, O, S } = require('./helpers');
 module.exports = {
   id: 'anime',
   name: 'ANIME',
+  desc: 'Waifus, personajes y búsqueda de anime',
   endpoints: [
     { id: 'neko', desc: 'Imagen aleatoria de neko (chica gato). Proveedores: nekos.best, purrbot, danbooru, safebooru, konachan, yande.re', media: 'image', params: [
       S('provider', '', 'Forzar proveedor (vacío = automático: se prueban todos en paralelo)', ['', 'nekos.best', 'purrbot', 'danbooru', 'safebooru', 'konachan', 'yande.re']),

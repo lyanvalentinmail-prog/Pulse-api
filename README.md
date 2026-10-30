@@ -1,17 +1,20 @@
 # Pulse API
 
-Dashboard basado en el diseño de [Apireon](https://apireon-36er.vercel.app/home), con los **104 endpoints
-REST de Pulse** en **6 categorías**, listo para **Vercel** o **Render**.
+Dashboard con el estilo **NOVA / Delirius** de las capturas de Drive (*Shots.zip* y *Pulse api*), con los
+**104 endpoints REST de Pulse** en **6 categorías**, listo para **Vercel** o **Render**.
 
-- **Dashboard:** `/` o `/home` · **Catálogo JSON:** `/docs` · **Info:** `/information`.
-- La tarjeta tiene fondo punteado, tipografía **Share Tech Mono** incluida localmente, barra de estado y
-  carpetas ordenadas por nombre. El buscador encuentra tanto carpetas como endpoints.
+- **Dashboard:** `/` o `/home` · **Portada:** `/welcome` · **Catálogo JSON:** `/docs` · **Info:** `/information`.
+- Estética de papel y tinta: fondo de puntos, tarjeta con borde negro y sombra desplazada, tipografías
+  **Share Tech Mono** y **JetBrains Mono** incluidas localmente, barra de estado negra y filas de carpetas
+  con icono, descripción y botón `VIEW` ordenadas por nombre.
 - Las páginas `/anime`, `/canvas`, `/downloader`, `/reactions`, `/searcher` y `/tools` conservan sus
-  endpoints y un probador desplegable con URL, ejemplo `fetch`, parámetros editables y resultado.
+  endpoints y un probador desplegable con la ficha del endpoint: barra `GET`, parámetros con chip
+  requerido, botón `EJECUTAR`, copiar URL / cURL / rellenar ejemplo y resultado con `200 OK` + ms.
   Los alias `/download` y `/search` redirigen a `/downloader` y `/searcher`.
 - Las opciones de estilo adicionales se pueden desplegar dentro del probador. Los canvas y
   `/tools/resize` admiten imágenes desde la galería; se muestran las imágenes, videos o JSON obtenidos.
-- La portada anterior permanece disponible en `/welcome`. Los grupos de Canvas se conservan en `/docs`.
+- La portada `/welcome` muestra chips por categoría con su conteo, aviso y accesos al dashboard.
+  Los grupos de Canvas se conservan en `/docs`.
 - La mayoría de endpoints no necesitan claves y usan fuentes públicas. La transcripción STT requiere
   configurar una clave de proveedor. No hay generación con IA ni contenido NSFW en Anime y Reactions.
 - **¿Agregar o editar un endpoint?** Consultá [CONTRIBUTING.md](CONTRIBUTING.md).
