@@ -1,19 +1,16 @@
 {
   "name": "Pulse-api",
   "version": "1.0.0",
-  "description": "Pulse API \u2014 REST API sin token: Anime, Canvas, Tools, Downloader, Searcher y Reactions.",
+  "description": "Pulse API — REST API sin token: Anime, Canvas, IA, Descargas, Busquedas, Imagenes, Herramientas, Juegos y Audios.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node scripts/smoke.js && node scripts/test-endpoints.js && node scripts/test-integrations.js && node scripts/test-providers.js && node scripts/test-brat.js",
+    "test": "node scripts/smoke.js && node scripts/test-brat.js",
     "check": "node scripts/validate-catalog.js",
     "test:smoke": "node scripts/smoke.js",
     "test:brat": "node scripts/test-brat.js",
-    "test:endpoints": "node scripts/test-endpoints.js",
-    "test:providers": "node scripts/test-providers.js",
-    "lint": "eslint src scripts api public/js eslint.config.js",
-    "test:integrations": "node scripts/test-integrations.js"
+    "lint": "eslint src scripts api public/js eslint.config.js"
   },
   "engines": {
     "node": "24.x"
@@ -25,12 +22,10 @@
     "ipaddr.js": "^2.5.0",
     "opentype.js": "^1.3.4",
     "sharp": "^0.35.5",
-    "undici": "^7.30.1",
-    "youtubei.js": "^18.3.0"
+    "undici": "^7.30.1"
   },
   "devDependencies": {
     "eslint": "^10.13.0",
-    "globals": "^17.13.0",
-    "jsdom": "^27.4.0"
+    "globals": "^17.13.0"
   }
 }

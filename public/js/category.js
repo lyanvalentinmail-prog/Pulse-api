@@ -126,8 +126,8 @@
   // fetch del endpoint: POST si hay imagen local; si el GET falla (por ejemplo la
   // subida caducó), reintenta con la imagen de la galería en el cuerpo.
   async function callEndpoint(tester, path) {
-    // Los datos locales son la fuente más fiable, incluso si /upload respondió:
-    // en serverless la siguiente petición puede llegar a otra instancia.
+    // Las imágenes de la galería viajan en el cuerpo del POST (son `data:` y no
+    // entran en una URL); si no hay ninguna, se usa el GET normal.
     const local = allLocalImages(tester);
     if (Object.keys(local).length) {
       return fetch(path, {
@@ -275,7 +275,7 @@
     const directo = candidatos.find(esUrl);
     if (!directo) return null;
     // Si es una URL de nuestra propia API, ya sabe descargar.
-    if (directo.startsWith('/') || /^(https?:)\/\/[^/]+\/(canvas|downloader|anime|searcher|reactions|tools)\//.test(directo)) {
+    if (directo.startsWith('/') || /^(https?:)\/\/[^/]+\/(canvas|anime|ia|descargas|busquedas|imagenes|herramientas|juegos|audios)\//.test(directo)) {
       return { href: directo, proxy: false };
     }
     const nombre = (r.title || r.query || endpoint || 'pulse').toString();
@@ -481,7 +481,7 @@
     if ('inert' in tester) tester.inert = true;
 
     const fieldOf = p => {
-      const gallery = (data.category === 'canvas' || (data.category === 'tools' && id === 'resize')) && isImageParam(p.name);
+      const gallery = data.category === 'canvas' && isImageParam(p.name);
       const up = gallery
         ? `<label class="upload"><span class="upload-label">Galería</span><input type="file" accept="image/*" multiple aria-label="Elegir imágenes para ${esc(p.name)}" data-upload-for="${esc(p.name)}"></label>`
         : '';
@@ -583,25 +583,14 @@
           const dataUrl = await new Promise(resolve => fileToDataUrl(file, resolve));
           if (!dataUrl) continue;
           locales.push(dataUrl);
-          // La imagen queda guardada igual: si la subida falla, el test la manda
-          // en el cuerpo del POST y el canvas la usa de todas formas.
-          let remote = '';
-          try {
-            const res = await fetch('/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image: dataUrl })
-            });
-            const json = await res.json().catch(() => null);
-            if (res.ok && json && json.result && json.result.url) remote = json.result.url;
-          } catch (_) { /* sin red: se usa el POST */ }
-          if (remote) urls.push(remote);
-          else target.dataset.pending = 'true';
+          // La imagen viaja en el cuerpo del POST del endpoint (no hay ruta de
+          // subida): así no depende de URLs largas ni de otra instancia del server.
+          target.dataset.pending = 'true';
         }
 
         setLocalList(target, locales);
         target.value = urls.join(',');
-        showThumb(row, locales, urls.length > 1 ? 'Foto subida' : 'Imagen subida');
+        showThumb(row, locales, locales.length > 1 ? 'Fotos cargadas' : 'Imagen cargada');
         if (row) row.hidden = locales.length === 0;
         if (labelText) labelText.textContent = before || 'Galería';
         if (label) label.classList.remove('busy');

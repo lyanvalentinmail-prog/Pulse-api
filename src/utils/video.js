@@ -1,4 +1,4 @@
-// src/utils/video.js — Canvas en video: bratvideo (MP4) y attp (WebM sticker).
+// src/utils/video.js — Canvas en video: bratvideo (MP4).
 // El texto de cada frame se dibuja en vectores (textEngine) para que no dependa de
 // las fuentes del sistema del host. La tipografía sale de src/canvas/layouts.js
 // (la misma que usa /canvas/brat), así el video y la imagen se ven iguales.
@@ -6,8 +6,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
-const { sharp } = require('./image');
-const { textLayer } = require('./textEngine');
 const { emojiImages } = require('./emoji');
 const { bratSpec, renderBrat } = require('./brat');
 
@@ -30,8 +28,6 @@ function cached(key, buf) {
   while (cache.size > 12) cache.delete(cache.keys().next().value);
   return buf;
 }
-
-const clampScale = v => Math.max(0.3, Math.min(2.5, Number(v) || 1));
 
 // ======================= BRAT (imagen y video) =======================
 // Cinco palabras por pantalla y 0,4 s por aparición, como el video de Drive.
@@ -98,57 +94,8 @@ async function bratVideo(text, opts = {}) {
   }
 }
 
-const ATTP_COLORS = ['#ff004d', '#ff8a00', '#ffe600', '#00e05a', '#00c2ff', '#8a2be2', '#ff5da2', '#ffffff'];
-
-async function attpFrame(text, color, dx, opts = {}) {
-  const S = 512;
-  const scale = clampScale(opts.size);
-  const layer = textLayer({
-    text,
-    width: S,
-    height: S,
-    family: opts.font || 'sans',
-    weight: 800,
-    maxFont: Math.round(84 * scale),
-    minFont: 14,
-    maxLines: 4,
-    lineHeight: 1.15,
-    letterSpacing: 1,
-    fill: color,
-    align: 'middle',
-    padding: 22,
-    offsetX: dx,
-    stroke: '#000000',
-    strokeWidth: Math.max(5, 8 * scale)
-  });
-  return sharp(layer.svg).png().toBuffer();
-}
-
-async function attpVideo(text, opts = {}) {
-  const clean = String(text || 'Welcome to Pulse').trim().slice(0, 60);
-  const key = `attp:${clean}:${opts.size || 1}`;
-  if (cache.has(key)) return cache.get(key);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-attp-'));
-  try {
-    const frames = 16;
-    for (let i = 0; i < frames; i++) {
-      const frame = await attpFrame(clean, ATTP_COLORS[i % ATTP_COLORS.length], i % 2 === 0 ? -4 : 4, opts);
-      fs.writeFileSync(path.join(dir, `f-${String(i).padStart(3, '0')}.png`), frame);
-    }
-    const out = path.join(dir, 'out.webm');
-    await runFfmpeg([
-      '-y', '-stream_loop', '2', '-framerate', '10', '-i', path.join(dir, 'f-%03d.png'),
-      '-t', '3.2', '-vf', 'fps=20', '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p',
-      '-b:v', '600k', '-auto-alt-ref', '0', out
-    ]);
-    return cached(key, fs.readFileSync(out));
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-// Endpoints de video: no viven en src/canvas/generators (son MP4/WebM animados)
+// Endpoints de video: no viven en src/canvas/generators (son MP4 animados)
 // sino acá. `scripts/validate-catalog.js` los usa para cuadrar el catálogo.
-const VIDEO_IDS = ['bratvideo', 'attp'];
+const VIDEO_IDS = ['bratvideo'];
 
-module.exports = { bratVideo, attpVideo, bratFrame, attpFrame, VIDEO_IDS };
+module.exports = { bratVideo, bratFrame, VIDEO_IDS };

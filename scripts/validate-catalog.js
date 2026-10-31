@@ -3,27 +3,31 @@
 //   npm run check
 //
 // Qué comprueba:
-//   · que cada categoría tenga id válido y endpoints
+//   · que cada categoría tenga id válido y nombre
 //   · que no haya endpoints repetidos dentro de una categoría
 //   · que cada endpoint tenga `desc`, `id` en minúsculas y `media` válida
 //   · que cada parámetro tenga nombre, tipo (requerido/opcional) y descripción
 //   · que no se repitan parámetros dentro del mismo endpoint
 //   · que los canvas del catálogo y los del motor (src/canvas) coincidan
 //   · que exista el router de cada categoría
+//   · que cada categoría en la web/API sea igual a su router
 const fs = require('fs');
 const path = require('path');
 const { CATEGORIES } = require('../src/catalog');
 const { CANVAS_IDS } = require('../src/utils/canvasEngine');
 const { VIDEO_IDS } = require('../src/utils/video');
 
-const MEDIA = new Set([undefined, null, 'image', 'video', 'audio']);
+const MEDIA = new Set([undefined, null, 'image', 'video', 'audio', 'json']);
 const ROUTES = {
   anime: 'anime.js',
   canvas: 'canvas.js',
-  tools: 'tools.js',
-  downloader: 'download.js',
-  searcher: 'searcher.js',
-  reactions: 'reactions.js'
+  ia: 'ia.js',
+  descargas: 'descargas.js',
+  busquedas: 'busquedas.js',
+  imagenes: 'imagenes.js',
+  herramientas: 'herramientas.js',
+  juegos: 'juegos.js',
+  audios: 'audios.js'
 };
 
 const errors = [];
@@ -33,6 +37,7 @@ const warn = msg => warnings.push(msg);
 
 let total = 0;
 const seenCats = new Set();
+const emptyCats = [];
 
 for (const cat of CATEGORIES) {
   const where = `categoría "${cat.id}"`;
@@ -40,7 +45,8 @@ for (const cat of CATEGORIES) {
   if (seenCats.has(cat.id)) fail(`${where}: categoría repetida`);
   seenCats.add(cat.id);
   if (!cat.name) fail(`${where}: falta "name" (el título que se ve en la web)`);
-  if (!Array.isArray(cat.endpoints) || !cat.endpoints.length) fail(`${where}: no tiene endpoints`);
+  if (!Array.isArray(cat.endpoints)) fail(`${where}: "endpoints" debe ser un array (puede estar vacío)`);
+  if (Array.isArray(cat.endpoints) && !cat.endpoints.length) emptyCats.push(cat.id);
 
   const routeFile = ROUTES[cat.id];
   if (!routeFile || !fs.existsSync(path.join(__dirname, '..', 'src', 'routes', routeFile))) {
@@ -56,7 +62,7 @@ for (const cat of CATEGORIES) {
     if (ids.has(ep.id)) fail(`${at}: endpoint repetido en la misma categoría`);
     ids.add(ep.id);
     if (!ep.desc || typeof ep.desc !== 'string') fail(`${at}: falta "desc"`);
-    if (!MEDIA.has(ep.media)) fail(`${at}: "media" debe ser image, video o audio`);
+    if (!MEDIA.has(ep.media)) fail(`${at}: "media" debe ser image, video, audio o json`);
     if (!Array.isArray(ep.params)) { fail(`${at}: "params" debe ser un array`); continue; }
 
     const names = new Set();
@@ -91,4 +97,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✅ Catálogo OK — ${CATEGORIES.length} categorías · ${total} endpoints${warnings.length ? ` · ${warnings.length} aviso(s)` : ''}`);
+const vacias = emptyCats.length ? ` · ${emptyCats.length} categoría(s) sin endpoints (${emptyCats.join(', ')})` : '';
+console.log(`✅ Catálogo OK — ${CATEGORIES.length} categorías · ${total} endpoints${vacias}${warnings.length ? ` · ${warnings.length} aviso(s)` : ''}`);

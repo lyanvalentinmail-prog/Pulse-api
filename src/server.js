@@ -1,4 +1,4 @@
-// src/server.js — Pulse API (Express). Web estilo retro + 6 routers sin token.
+// src/server.js — Pulse API (Express). Web estilo retro + 9 routers sin token.
 const path = require('path');
 const express = require('express');
 const config = require('./config');
@@ -21,22 +21,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// Páginas (/, /home, /anime, /canvas, /tools, /downloader, /searcher, /reactions,
-// /information, /docs)
+// Páginas (/, /home, una por categoría, /information y /docs)
 // Deben ir ANTES de los routers API para que GET /canvas sirva la web y /canvas/:id el PNG.
 app.use(require('./routes/pages'));
 
-// API
+// API — nueve categorías. Hoy sólo CANVAS publica endpoints (brat y bratvideo);
+// el resto son routers vacíos listos para llenar (ver src/routes/<categoría>.js).
 app.use(require('./utils/requestContext').requestContext);
-app.use('/canvas', require('./routes/canvas'));
 app.use('/anime', require('./routes/anime'));
-app.use('/reactions', require('./routes/reactions'));
-app.use('/tools', require('./routes/tools'));
-app.use(['/downloader', '/download'], require('./routes/download'));
-app.use(['/searcher', '/search'], require('./routes/searcher'));
-
-// Subidas desde la web (Galería del probador): POST /upload → URL corta
-app.use('/upload', require('./routes/upload'));
+app.use('/canvas', require('./routes/canvas'));
+app.use('/ia', require('./routes/ia'));
+app.use('/descargas', require('./routes/descargas'));
+app.use('/busquedas', require('./routes/busquedas'));
+app.use('/imagenes', require('./routes/imagenes'));
+app.use('/herramientas', require('./routes/herramientas'));
+app.use('/juegos', require('./routes/juegos'));
+app.use('/audios', require('./routes/audios'));
 
 // Salud
 app.get('/ping', (req, res) => {

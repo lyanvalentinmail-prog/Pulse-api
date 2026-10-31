@@ -19,10 +19,13 @@ body:
       options:
         - anime
         - canvas
-        - tools
-        - downloader
-        - searcher
-        - reactions
+        - ia
+        - descargas
+        - busquedas
+        - imagenes
+        - herramientas
+        - juegos
+        - audios
         - categoría nueva
     validations:
       required: true
