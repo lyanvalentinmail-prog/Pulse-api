@@ -61,28 +61,19 @@ Rutas viejas que siguen funcionando como redirección:
 
 ### Parámetros
 
-Comunes (`brat` y `bratvideo`):
+Sólo cuatro (cinco en el video), para que el probador quede corto:
 
 | Parámetro | Ejemplo | Qué hace |
 |---|---|---|
 | `text` *(requerido)* | `Hehe this is brat 💸` | Texto del sticker |
 | `bg` | `ffffff` | Fondo hex sin `#` |
+| `color` | `ff2d55` | Color del texto hex (vacío = negro) |
 | `canvas.size` | `736` (imagen) / `512` (video) | Lado en px (200 - 2000; en video se redondea a par) |
-| `color` | `ff2d55` | Color del texto (hex o nombre: `white`, `black`…) |
-| `size` | `1` | Escala del texto: `0.5` = mitad, `2` = doble |
-| `font` | `sans` | Tipografía del repo: `sans`, `serif`, `mono`, `hand` |
-| `uppercase` | `false` | `true` = MAYÚSCULAS |
-| `x` / `y` | `0` | Mover el texto (-50 a 50) |
-| `rotate` | `0` | Rotar el texto en grados (-180 a 180) |
-| `spacing` | `0` | Espacio extra entre letras (px) |
-| `text.align` | `start` | `start`, `middle`, `end` |
-| `text.weight` | `400` | Grosor (400 - 900) |
+| `words` | `5` | **Sólo `bratvideo`**: cuántas palabras entran por pantalla (1 - 8) |
 
-Sólo `bratvideo`:
-
-| Parámetro | Ejemplo | Qué hace |
-|---|---|---|
-| `words` | `5` | Cuántas palabras entran por pantalla (1 - 8) |
+El motor además acepta overrides finos por URL — `size`, `font`, `uppercase`,
+`x`, `y`, `rotate`, `spacing`, `text.align`, `text.weight` — documentados por
+completitud pero **no** en la web, para no llenar el probador.
 
 ### Ejemplos
 
@@ -91,7 +82,7 @@ Sólo `bratvideo`:
 curl -o brat.png "http://localhost:3000/canvas/brat?text=hehe%20this%20is%20brat%20%F0%9F%92%B8"
 
 # PNG con estilo
-curl -o brat.png "http://localhost:3000/canvas/brat?text=hola&bg=8ace00&color=ff2d55&uppercase=true"
+curl -o brat.png "http://localhost:3000/canvas/brat?text=hola&bg=8ace00&color=ff2d55"
 
 # Video MP4 (3 palabras por pantalla)
 curl -o brat.mp4 "http://localhost:3000/canvas/bratvideo?text=welcome%20to%20pulse&words=3"
@@ -221,7 +212,7 @@ Un canvas nuevo (o que se quiera recuperar del historial de Git) necesita 4 cosa
 | `P(nombre, ejemplo, desc)` | parámetro **requerido** |
 | `O(nombre, ejemplo, desc)` | parámetro **opcional** (input de texto) |
 | `S(nombre, ejemplo, desc, opciones[])` | opcional con **lista desplegable** |
-| `textStyle()` | bloque de estilo de texto (`color`, `size`, `font`, `uppercase`, `x`, `y`, `rotate`, `spacing`) |
+| `textStyle()` | bloque completo de estilo de texto (8 opciones; los canvas de hoy **no** lo usan) |
 | `photoStyle()` | bloque de foto (`images`, `zoom`, `grayscale`, `rotate`) |
 | `AV` / `AV2` | la web los cambia por los avatares por defecto |
 
