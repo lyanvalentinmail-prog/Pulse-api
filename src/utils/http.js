@@ -178,6 +178,19 @@ function safeHost(raw) {
     return url.username || url.password || url.pathname !== '/' || url.search || url.hash ? null : url.host;
   } catch (_) { return null; }
 }
+/**
+ * Traduce errores de red a un mensaje entendible. Devuelve '' si el error no es
+ * de conexión (así el caller conserva el mensaje original).
+ */
+function networkMessage(error) {
+  const text = `${(error && error.message) || ''} ${(error && error.code) || ''} ${(error && error.cause && error.cause.code) || ''}`;
+  if (/fetch failed|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ETIMEDOUT|socket hang up|network/i.test(text)) {
+    return 'La fuente no respondió: sin conexión o bloqueada desde el servidor';
+  }
+  if (/aborted|tiempo de espera|timeout/i.test(text)) return 'La fuente tardó demasiado en responder';
+  return '';
+}
+
 function absoluteUrl(req, path) {
   const supplied = String(req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim().toLowerCase();
   const proto = supplied === 'https' ? 'https' : 'http';
@@ -185,4 +198,4 @@ function absoluteUrl(req, path) {
   return `${proto}://${host}${path}`;
 }
 
-module.exports = { UA_DESKTOP, UA_MOBILE, fetchWithTimeout, fetchJson, postJson, fetchText, fetchBuffer, firstSuccess, firstFast, absoluteUrl };
+module.exports = { UA_DESKTOP, UA_MOBILE, fetchWithTimeout, fetchJson, postJson, fetchText, fetchBuffer, firstSuccess, firstFast, networkMessage, absoluteUrl };

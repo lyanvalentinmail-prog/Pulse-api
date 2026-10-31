@@ -81,7 +81,9 @@ async function main() {
     ok('Nueve routers: anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios',
       JSON.stringify(ids) === JSON.stringify(['anime', 'canvas', 'ia', 'descargas', 'busquedas', 'imagenes', 'herramientas', 'juegos', 'audios']),
       ids.join(', '));
-    ok('Sólo canvas publica endpoints', CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(',') === 'canvas');
+    ok('Publican endpoints: canvas, ia, descargas y busquedas',
+      CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(',') === 'canvas,ia,descargas,busquedas',
+      CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(','));
 
     for (const cat of CATEGORIES) {
       const page = await get(port, `/${cat.id}`);
@@ -92,12 +94,12 @@ async function main() {
     }
 
     const t = totals();
-    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 2, `routers=${t.routers} endpoints=${t.endpoints}`);
+    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 17, `routers=${t.routers} endpoints=${t.endpoints}`);
 
     // ---------- Catálogo JSON ----------
     const docs = await get(port, '/docs');
     const json = JSON.parse(docs.body.toString());
-    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 2);
+    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 17);
     ok('/docs trae las nueve categorías', json.categories.length === 9);
     ok('/docs: canvas con brat y bratvideo',
       json.categories.find(c => c.id === 'canvas').endpoints.map(e => e.id).join(',') === 'brat,bratvideo');
@@ -121,6 +123,40 @@ async function main() {
       const res = await get(port, r);
       ok(`GET ${r} → 404 (router eliminado)`, res.status === 404);
     }
+
+    // ---------- Descargas ----------
+    const descargas = json.categories.find(c => c.id === 'descargas').endpoints.map(e => e.id);
+    ok('/docs: descargas con 8 endpoints',
+      descargas.join(',') === 'tiktok,pinterest,instagram,facebook,spotify,youtubemp4,youtubemp3,audio', descargas.join(','));
+    const sinUrl = await get(port, '/descargas/tiktok');
+    ok('GET /descargas/tiktok sin url → 400', sinUrl.status === 400 && JSON.parse(sinUrl.body.toString()).status === false);
+    const urlMala = await get(port, '/descargas/tiktok?url=https://example.com/x');
+    ok('GET /descargas/tiktok con host ajeno → 400', urlMala.status === 400);
+    const descargaFalsa = await get(port, '/descargas/nada');
+    ok('GET /descargas/nada → 404', descargaFalsa.status === 404);
+
+    // ---------- Busquedas ----------
+    const busquedas = json.categories.find(c => c.id === 'busquedas').endpoints.map(e => e.id);
+    ok('/docs: busquedas con 6 buscadores',
+      busquedas.join(',') === 'pinterest,tiktok,youtube,wallpapers,wallpapersv2,stickerly', busquedas.join(','));
+    const sinQ = await get(port, '/busquedas/youtube');
+    ok('GET /busquedas/youtube sin q → 400', sinQ.status === 400 && JSON.parse(sinQ.body.toString()).status === false);
+    const qLarga = await get(port, `/busquedas/tiktok?q=${'x'.repeat(200)}`);
+    ok('GET /busquedas/tiktok con q enorme → 400', qLarga.status === 400);
+    const busquedaFalsa = await get(port, '/busquedas/nada');
+    ok('GET /busquedas/nada → 404', busquedaFalsa.status === 404);
+
+    // ---------- IA ----------
+    const ia = json.categories.find(c => c.id === 'ia').endpoints.map(e => e.id);
+    ok('/docs: IA con gemini', ia.join(',') === 'gemini', ia.join(','));
+    const sinPrompt = await get(port, '/ia/gemini');
+    ok('GET /ia/gemini sin prompt → 400 o 503 sin clave', sinPrompt.status === 400 || sinPrompt.status === 503,
+      `status ${sinPrompt.status}`);
+    const iaFalsa = await get(port, '/ia/nada');
+    ok('GET /ia/nada → 404', iaFalsa.status === 404);
+    ok('La clave de Gemini nunca sale en /docs ni en /ia',
+      !docs.body.toString().includes('AIza') && !String(process.env.GEMINI_API_KEY || '').length
+        ? true : !docs.body.toString().includes(process.env.GEMINI_API_KEY || '\u0000'));
 
     const notFound = await get(port, '/nada');
     ok('GET /nada → 404 JSON', notFound.status === 404 && JSON.parse(notFound.body.toString()).status === false);

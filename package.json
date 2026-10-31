@@ -6,11 +6,12 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node scripts/smoke.js && node scripts/test-brat.js",
+    "test": "node scripts/smoke.js && node scripts/test-extract.js && node scripts/test-brat.js",
     "check": "node scripts/validate-catalog.js",
     "test:smoke": "node scripts/smoke.js",
     "test:brat": "node scripts/test-brat.js",
-    "lint": "eslint src scripts api public/js eslint.config.js"
+    "lint": "eslint src scripts api public/js eslint.config.js",
+    "test:extract": "node scripts/test-extract.js"
   },
   "engines": {
     "node": "24.x"
