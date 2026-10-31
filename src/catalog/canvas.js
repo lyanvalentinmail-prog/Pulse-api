@@ -49,7 +49,7 @@ module.exports = {
       ...textStyle()
     ] },
     { id: 'brat', group: 'brats', desc: 'Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color.', params: [
-      P('text', 'Welcome to Pulse API 💚✨', 'Texto del sticker'),
+      P('text', 'Hehe this is brat 💸', 'Texto del sticker'),
       O('bg', 'ffffff', 'Fondo hex sin #'),
       O('canvas.size', '736', 'Lado del PNG en píxeles (200 - 2000)'),
       ...textStyle(),
