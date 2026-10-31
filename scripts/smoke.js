@@ -20,6 +20,16 @@ function get(port, p) {
   });
 }
 
+function getRange(port, p, range) {
+  return new Promise((resolve, reject) => {
+    http.get(`http://127.0.0.1:${port}${p}`, { headers: { Range: range } }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'] || '', body: Buffer.concat(chunks), headers: res.headers }));
+    }).on('error', reject);
+  });
+}
+
 const isPng = buf => buf.length > 100 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
 const isMp4 = buf => buf.length > 100 && buf.subarray(4, 8).toString() === 'ftyp';
 
@@ -45,7 +55,16 @@ async function main() {
     ok('Home contenedor de lista de categorías', homeHtml.includes('id="category-list"') && homeHtml.includes('PULSE STORE'));
 
     const welcome = await get(port, '/welcome');
-    ok('GET /welcome', welcome.status === 200 && /<html/i.test(welcome.body.toString()));
+    const welcomeHtml = welcome.body.toString();
+    ok('GET /welcome', welcome.status === 200 && /<html/i.test(welcomeHtml));
+    ok('Portada con hero de video', welcomeHtml.includes('id="hero-video"') && welcomeHtml.includes('autoplay')
+      && welcomeHtml.includes('muted') && welcomeHtml.includes('loop'));
+    ok('Portada con sello de versión y aviso', welcomeHtml.includes('Status: online') && welcomeHtml.includes('alert-tag'));
+
+    const welcomeVideo = await get(port, '/media/welcome.mp4');
+    ok('GET /media/welcome.mp4', welcomeVideo.status === 200 && welcomeVideo.type.includes('video/mp4') && welcomeVideo.body.length > 1000);
+    const welcomeRange = await getRange(port, '/media/welcome.mp4', 'bytes=0-99');
+    ok('Video con soporte de Range (206)', welcomeRange.status === 206 && welcomeRange.body.length === 100);
 
     const info = await get(port, '/information');
     ok('GET /information', info.status === 200 && info.body.toString().includes('Routers'));
