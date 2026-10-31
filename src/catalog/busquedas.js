@@ -1,29 +1,25 @@
 // src/catalog/busquedas.js — Ficha de la categoría **BUSQUEDAS**.
 //
-// El router /busquedas (src/routes/busquedas.js) está montado pero todavía no publica
-// endpoints: `endpoints: []`. La web, /docs y el probador salen vacíos hasta que
-// agregues la primera ficha.
-//
-// ▸ AGREGAR un endpoint (2 pasos):
-//   1) la ruta que responde → src/routes/busquedas.js
-//   2) la ficha (desc + params) → acá, copiando una entrada de src/catalog/canvas.js
-//
-// Formato de una entrada:
-//
-//   {
-//     id: 'miEndpoint',          // = la ruta: GET /busquedas/miEndpoint (minúsculas, sin espacios)
-//     desc: 'Qué hace',          // se ve en la web, en /docs y en el README
-//     media: 'image',            // opcional: 'image' | 'video' | 'audio' | 'json'
-//     params: [
-//       P('text', 'hola', 'Texto principal'),   // requerido
-//       O('size', '1', 'Escala (0.5 - 2)')      // opcional
-//     ]
-//   }
-//
-// Ayudas (src/catalog/helpers.js): P, O, S, AV, AV2, textStyle(), photoStyle().
+// ▸ AGREGAR un buscador: la fuente va en src/utils/search.js, el handler en
+//   src/routes/busquedas.js (mapa SOURCES) y la ficha acá.
+const { P, O } = require('./helpers');
+
+// Todos comparten los mismos dos parámetros.
+const params = (example, desc, hint = 'Cuántos resultados devolver (1 - 30)') => [
+  P('q', example, desc),
+  O('limit', '10', hint)
+];
+
 module.exports = {
   id: 'busquedas',
   name: 'BUSQUEDAS',
-  desc: 'Buscadores: YouTube, Spotify, TikTok y más',
-  endpoints: []
+  desc: 'Buscadores: Pinterest, TikTok, YouTube y fondos de pantalla',
+  endpoints: [
+    { id: 'pinterest', desc: 'Busca pines (imágenes y videos) en Pinterest.', media: 'image', params: params('anime', 'Qué buscar en Pinterest') },
+    { id: 'tiktok', desc: 'Busca videos de TikTok con título, autor, portada y enlace MP4.', media: 'video', params: params('gatos', 'Qué buscar en TikTok') },
+    { id: 'youtube', desc: 'Busca videos de YouTube: título, canal, duración, vistas y miniatura.', media: 'video', params: params('lofi hip hop', 'Qué buscar en YouTube') },
+    { id: 'wallpapers', desc: 'Fondos de pantalla de BestHDWallpapers (imagen original + página).', media: 'image', params: params('naruto', 'Qué fondo buscar (mejor en inglés)', 'Cuántos fondos devolver (1 - 30)') },
+    { id: 'wallpapersv2', desc: 'Fondos de pantalla en movimiento de MotionBGs (video o preview).', media: 'video', params: params('rain', 'Qué fondo animado buscar (mejor en inglés)', 'Cuántos fondos devolver (1 - 30)') },
+    { id: 'stickerly', desc: 'Stickers de Stickerly por nombre de pack o personaje.', media: 'image', params: params('gatitos', 'Qué sticker buscar') }
+  ]
 };

@@ -4,9 +4,9 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados. Sólo **CANVAS** publica endpoints
-> (`brat` y `bratvideo`). Las otras 8 categorías existen, se ven en la web y en
-> `/docs`, pero todavía no tienen endpoints — están listas para llenarlas.
+> **Estado actual:** 9 routers montados y **17 endpoints** publicados:
+> Canvas (2), IA (1), Descargas (8) y Búsquedas (6). Anime, Imágenes,
+> Herramientas, Juegos y Audios siguen vacías, listas para llenar.
 
 ```
 GET /home                      → dashboard con las carpetas
@@ -40,9 +40,9 @@ Todos los endpoints JSON responden con el mismo sobre:
 |---|---|---|---|
 | `anime` | `/anime` | — | Waifus, personajes y búsqueda de anime |
 | `canvas` | `/canvas` | **2** | Memes e imágenes generadas al vuelo |
-| `ia` | `/ia` | — | Modelos y utilidades de inteligencia artificial |
-| `descargas` | `/descargas` | — | Videos y música de redes sociales |
-| `busquedas` | `/busquedas` | — | Buscadores: YouTube, Spotify, TikTok y más |
+| `ia` | `/ia` | **1** | Modelos y utilidades de inteligencia artificial |
+| `descargas` | `/descargas` | **8** | Videos y música de redes sociales |
+| `busquedas` | `/busquedas` | **6** | Buscadores: Pinterest, TikTok, YouTube, fondos |
 | `imagenes` | `/imagenes` | — | Imágenes, stickers y fondos |
 | `herramientas` | `/herramientas` | — | Utilidades: QR, hash, base64, texto |
 | `juegos` | `/juegos` | — | Juegos rápidos por chat |
@@ -51,6 +51,75 @@ Todos los endpoints JSON responden con el mismo sobre:
 Rutas viejas que siguen funcionando como redirección:
 `/tools` → `/herramientas`, `/downloader` y `/download` → `/descargas`,
 `/searcher` y `/search` → `/busquedas`, `/reactions` → `/imagenes`.
+
+## 🤖 IA — 1
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET|POST /ia/gemini` | Pregunta al modelo Gemini de Google. La clave es del servidor: el usuario no manda token. |
+
+```
+GET /ia/gemini?prompt=hola&model=gemini-1.5-flash&temperature=0.4
+POST /ia/gemini        { "prompt": "resume este texto…", "maxTokens": 512 }
+```
+
+Parámetros: `prompt` (requerido), `model` (`gemini-2.0-flash`, `gemini-1.5-flash`,
+`gemini-1.5-pro`), `temperature` (0-2), `maxTokens` (64-4096).
+
+Sin clave configurada responde **503** con la pista; la clave **nunca** se escribe
+en el repo:
+
+```bash
+GEMINI_API_KEY=…          # variable de entorno (Render/Vercel)
+# o, en local, secrets.local.json  { "GEMINI_API_KEY": "…" }  (gitignored)
+```
+
+## 📥 Descargas — 8
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /descargas/tiktok` | MP4 sin marca de agua + MP3 del audio, portada y autor. |
+| `GET /descargas/pinterest` | Video o imagen del pin en calidad original. |
+| `GET /descargas/instagram` | Video o foto de un post/reel. |
+| `GET /descargas/facebook` | Video en HD (cae a SD). |
+| `GET /descargas/spotify` | Metadatos + preview MP3 de 30 s. |
+| `GET /descargas/youtubemp4` | Video de YouTube en MP4. |
+| `GET /descargas/youtubemp3` | Audio de YouTube en MP3. |
+| `GET /descargas/audio` | Extrae el audio de cualquier archivo remoto a MP3 (ffmpeg). |
+
+Todos reciben `?url=…` y aceptan `?direct=true` para bajar el archivo
+(con `Range`, así el reproductor puede buscar dentro del video):
+
+```bash
+curl -o video.mp4 "http://localhost:3000/descargas/tiktok?url=…&direct=true"
+curl "http://localhost:3000/descargas/pinterest?url=https://www.pinterest.com/pin/123/"
+```
+
+Fuentes: tikwm (TikTok), HTML público (Pinterest/Instagram/Facebook), oEmbed +
+embed (Spotify), **cobalt** o instancias Piped (YouTube). Para YouTube conviene
+tener tu propia instancia:
+
+```bash
+COBALT_API_URL=https://cobalt.tu-dominio.com
+```
+
+## 🔎 Busquedas — 6
+
+| Endpoint | Fuente | Devuelve |
+|---|---|---|
+| `GET /busquedas/pinterest` | Pinterest | pines (imagen o video) |
+| `GET /busquedas/tiktok` | tikwm | videos con MP4 y portada |
+| `GET /busquedas/youtube` | Piped / Invidious | título, canal, duración, vistas |
+| `GET /busquedas/wallpapers` | besthdwallpapers.org | fondos en tamaño original |
+| `GET /busquedas/wallpapersv2` | motionbgs.com | fondos en movimiento |
+| `GET /busquedas/stickerly` | api.sticker.ly | stickers de WhatsApp |
+
+Todas usan `?q=` (obligatorio) y `&limit=` (1-30):
+
+```bash
+curl "http://localhost:3000/busquedas/wallpapers?q=naruto&limit=5"
+curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
+```
 
 ## 🎨 Canvas — 2
 
@@ -148,12 +217,15 @@ src/
   utils/
     brat.js            diseño brat compartido por PNG y video
     video.js           bratvideo (ffmpeg)
+    extract.js         resolvedores de Descargas (tiktok, pinterest, ig, fb…)
+    search.js          buscadores (pinterest, tiktok, youtube, wallpapers…)
+    http.js publicFetch.js  fetch con timeout / sólo IP públicas
     textEngine.js      tipografías + medición + SVG
     emoji.js           emojis a color desde assets/emoji
     image.js http.js publicFetch.js response.js requestContext.js uploadStore.js
 public/                la web (home, welcome, css, js del probador)
 assets/                fonts, emoji, templates, defaults
-scripts/               smoke, test-brat, validate-catalog
+scripts/               smoke, test-extract (parsers sin red), test-brat, validate-catalog
 ```
 
 ## Desarrollo

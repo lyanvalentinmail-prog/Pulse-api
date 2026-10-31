@@ -8,3 +8,4 @@ out*.jpg
 check*.jpg
 grid*.jpg
 videoframes.jpg
+secrets.local.json
