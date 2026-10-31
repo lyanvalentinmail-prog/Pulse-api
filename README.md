@@ -98,6 +98,35 @@ el frame del video y el PNG se ven exactamente igual. La tipografía y los emoji
 salen del repo (`assets/fonts`, `assets/emoji`), así que no hay cuadrados `▯▯▯`
 ni fuentes remotas en tiempo de ejecución.
 
+## 🎬 Portada (`/welcome`)
+
+La página previa al dashboard replica la portada de referencia: hoja de papel,
+título con sello `V. 1.0.0 // Status: online`, **video del hero**, dos párrafos,
+aviso de seguridad, chips de categorías y acceso al dashboard.
+
+```
+public/welcome.html        estructura de la portada (marcadores __WELCOME_*__)
+public/media/welcome.mp4   video del hero (vertical, cuadrada o 16:9: el marco
+                           toma la proporción real del archivo)
+public/img/welcome-poster.jpg   (opcional) primer frame mientras carga
+```
+
+El video se reproduce en silencio, en bucle y sin controles; si el navegador no
+lo puede cargar queda el póster sobre fondo negro.
+
+### Cambiar el video
+
+1. **Archivo local** (recomendado): reemplazá `public/media/welcome.mp4`
+   (H.264 + AAC, ≤ 5 MB para que cargue rápido en móvil).
+2. **URL externa**, sin tocar el repo:
+
+```bash
+WELCOME_VIDEO_URL=https://cdn.tu-dominio/video.mp4 npm start
+```
+
+También podés fijar el póster con `WELCOME_POSTER_URL=https://…/frame.jpg`.
+En Render/Vercel se configuran como variables de entorno (`render.yaml`).
+
 ## Estructura del repo
 
 ```

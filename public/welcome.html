@@ -27,22 +27,43 @@
                     <span class="pill">V. 1.0.0 // Status: online</span>
                 </header>
 
-                <figure class="hero">
-                    <img src="/img/banner.jpg" alt="Pulse API" width="880" height="495" />
-                    <figcaption class="hero-tag">Free Rest API</figcaption>
+                <!-- Portada: video a pantalla completa del marco, con el sello encima. -->
+                <figure class="hero hero-video">
+                    <div class="hero-frame">
+                        <video
+                            id="hero-video"
+                            class="hero-media"
+                            src="__WELCOME_VIDEO__"
+                            __WELCOME_POSTER_ATTR__
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                            aria-label="Video de presentación de Pulse API"></video>
+                        <figcaption class="hero-tag"><span>Free Rest API</span></figcaption>
+                    </div>
                 </figure>
 
                 <p class="para">
-                    <strong>Pulse API</strong> es una REST API gratuita estilo Delirius: sin apikey, sin registro y con
-                    decenas de endpoints funcionales que puedes probar en vivo desde el dashboard.
+                    <strong>Pulse</strong> es una API de acceso libre pensada para resolver tareas sin la fricción de
+                    las <mark>API Keys</mark>. Lo que empezó como un conjunto de herramientas personales hoy es un
+                    recurso público que crece con la comunidad.
                 </p>
 
                 <p class="para">
-                    Nueve carpetas: <code>anime</code>, <code>canvas</code> (memes e imágenes generadas),
-                    <code>ia</code>, <code>descargas</code> (video y audio), <code>busquedas</code>,
-                    <code>imagenes</code>, <code>herramientas</code> (qr, hash, base64…), <code>juegos</code> y
-                    <code>audios</code>.
+                    La infraestructura corre sobre <mark>Node + Express</mark> y devuelve siempre el mismo sobre
+                    <code>{ creator, status, result }</code>: respuestas rápidas, predecibles y sin registro para
+                    extraer metadatos, generar imágenes y descargar contenido.
                 </p>
+
+                <div class="alert">
+                    <span class="alert-tag"><span class="warn">⚠</span> Aviso de seguridad</span>
+                    <p>
+                        Si detectas a terceros comercializando el acceso a esta API, repórtalo de inmediato. Este
+                        recurso es gratuito y abierto para todos los desarrolladores.
+                    </p>
+                </div>
 
                 <div class="chips" id="chips" aria-label="Categorías disponibles">
                     <span class="chip skeleton" aria-hidden="true"></span>
@@ -51,25 +72,17 @@
                     <span class="chip skeleton" aria-hidden="true"></span>
                 </div>
 
-                <div class="alert">
-                    <span class="alert-tag"><span class="warn">!</span> Aviso importante</span>
-                    <p>
-                        Cada endpoint se ejecuta al instante desde el navegador: datos locales, APIs públicas con CORS
-                        abierto y plugins de canvas. Sin claves, sin límites absurdos, sin fricción.
-                    </p>
-                </div>
-
-                <p class="para">
-                    Entra al <a href="/home">dashboard</a>, elige una categoría, abre un <code>endpoint</code>, rellena
-                    los parámetros y pulsa <strong>Test</strong>. Puedes copiar la URL y el comando curl de cada prueba.
+                <p class="para small">
+                    Entrá al <a href="/home">dashboard</a>, elegí una carpeta, abrí un <code>endpoint</code>, completá
+                    los parámetros y pulsá <strong>Test</strong>. Cada prueba devuelve la URL y el comando curl.
                 </p>
 
                 <div class="cta-wrap">
                     <a href="/home" class="cta">INICIALIZAR DASHBOARD</a>
-                    <a href="/information" class="cta ghost">VER ENDPOINTS</a>
+                    <a href="/docs" class="cta ghost">VER ENDPOINTS</a>
                 </div>
 
-                <footer class="sheet-footer">&copy; 2026 – PULSE STORE</footer>
+                <footer class="sheet-footer">&copy; 2026 | PULSE STORE</footer>
             </main>
         </div>
 
@@ -91,6 +104,21 @@
                 };
                 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 const chips = document.getElementById('chips');
+
+                // Si el video no está (o el navegador lo bloquea), queda el póster.
+                const video = document.getElementById('hero-video');
+                if (video) {
+                    video.addEventListener('error', () => video.classList.add('is-missing'), true);
+                    // El marco toma la proporción real del video (vertical, cuadrada…).
+                    video.addEventListener('loadedmetadata', () => {
+                        const w = video.videoWidth;
+                        const h = video.videoHeight;
+                        if (w && h) video.parentElement.style.setProperty('--hero-ratio', `${w} / ${h}`);
+                    });
+                    const play = () => { const p = video.play(); if (p && p.catch) p.catch(() => {}); };
+                    play();
+                    document.addEventListener('visibilitychange', () => { if (!document.hidden) play(); });
+                }
 
                 fetch('/docs', { headers: { accept: 'application/json' } })
                     .then(res => res.json())

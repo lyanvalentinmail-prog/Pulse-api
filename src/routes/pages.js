@@ -51,10 +51,17 @@ function avatars(req) {
 const WELCOME_HTML = fs.readFileSync(path.join(__dirname, '../../public/welcome.html'), 'utf-8');
 const HOME_HTML = fs.readFileSync(path.join(__dirname, '../../public/home.html'), 'utf-8');
 
-// Portada de presentación (estilo papel + puntos).
+// Portada de presentación (estilo papel + puntos): hoja, sello de versión,
+// video del hero, aviso de seguridad y chips de categorías.
 router.get('/welcome', (req, res) => {
+  const poster = config.welcomePoster || (
+    fs.existsSync(path.join(__dirname, '../../public/img/welcome-poster.jpg')) ? '/img/welcome-poster.jpg' : ''
+  );
+  const html = WELCOME_HTML
+    .replace('__WELCOME_VIDEO__', esc(config.welcomeVideo))
+    .replace('__WELCOME_POSTER_ATTR__', poster ? ` poster="${esc(poster)}"` : '');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.send(WELCOME_HTML);
+  return res.send(html);
 });
 
 // Alias antiguos → rutas nuevas
