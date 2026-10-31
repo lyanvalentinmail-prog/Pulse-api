@@ -4,13 +4,19 @@
 //
 // 📁 Cada categoría vive en su propio archivo, así es fácil de leer y editar:
 //
-//   src/catalog/helpers.js     → P(), O(), S(), AV, AV2, textStyle(), photoStyle()
-//   src/catalog/anime.js       → ANIME        (4)   GET /anime/:id
-//   src/catalog/canvas.js      → CANVAS       (49)  GET /canvas/:id
-//   src/catalog/tools.js       → TOOLS        (3)   GET /tools/:id
-//   src/catalog/downloader.js  → DOWNLOADER   (10)   GET /downloader/:id
-//   src/catalog/searcher.js    → SEARCHER     (5)   GET /searcher/:id
-//   src/catalog/reactions.js   → REACTIONS    (26)  GET /reactions/:id
+//   src/catalog/helpers.js       → P(), O(), S(), AV, AV2, textStyle(), photoStyle()
+//   src/catalog/anime.js         → ANIME         (0)   GET /anime/:id
+//   src/catalog/canvas.js        → CANVAS        (2)   GET /canvas/:id  (brat, bratvideo)
+//   src/catalog/ia.js            → IA            (0)   GET /ia/:id
+//   src/catalog/descargas.js     → DESCARGAS     (0)   GET /descargas/:id
+//   src/catalog/busquedas.js     → BUSQUEDAS     (0)   GET /busquedas/:id
+//   src/catalog/imagenes.js      → IMAGENES      (0)   GET /imagenes/:id
+//   src/catalog/herramientas.js  → HERRAMIENTAS  (0)   GET /herramientas/:id
+//   src/catalog/juegos.js        → JUEGOS        (0)   GET /juegos/:id
+//   src/catalog/audios.js        → AUDIOS        (0)   GET /audios/:id
+//
+// Los nueve routers están montados en src/server.js y hoy sólo CANVAS publica
+// endpoints. El resto son categorías listas para llenar.
 //
 // ➕ AGREGAR UN ENDPOINT: se hace en 2 pasos.
 //    1) el código que responde, en src/routes/<categoría>.js
@@ -25,14 +31,17 @@
 //    · CONTRIBUTING.md (guía paso a paso, con plantillas para copiar)
 const anime = require('./anime');
 const canvas = require('./canvas');
-const tools = require('./tools');
-const downloader = require('./downloader');
-const searcher = require('./searcher');
-const reactions = require('./reactions');
+const ia = require('./ia');
+const descargas = require('./descargas');
+const busquedas = require('./busquedas');
+const imagenes = require('./imagenes');
+const herramientas = require('./herramientas');
+const juegos = require('./juegos');
+const audios = require('./audios');
 const { P, O, S, AV, AV2, textStyle, photoStyle } = require('./helpers');
 
 // /home ordena las carpetas por nombre; este orden se conserva en /docs.
-const CATEGORIES = [anime, canvas, tools, downloader, searcher, reactions];
+const CATEGORIES = [anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios];
 
 // ---------- Parámetros "avanzados" (se ocultan tras un botón en la web) ----------
 // Los estilos de texto/foto no hacen falta para probar un endpoint: se agrupan

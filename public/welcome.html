@@ -11,11 +11,11 @@
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
-        <meta property="og:description" content="REST API gratis, sin token: anime, canvas, tools, downloader, searcher y reactions." />
+        <meta property="og:description" content="REST API gratis, sin token: anime, canvas, IA, descargas, búsquedas, imágenes, herramientas, juegos y audios." />
         <meta property="og:image" content="/img/banner.jpg" />
         <meta property="og:url" content="/welcome" />
-        <meta name="keywords" content="api, rest, gratis, free, tools, developers, pulse" />
-        <meta name="description" content="REST API gratis, sin token: anime, canvas, tools, downloader, searcher y reactions." />
+        <meta name="keywords" content="api, rest, gratis, free, canvas, anime, ia, descargas, busquedas, imagenes, herramientas, juegos, audios, pulse" />
+        <meta name="description" content="REST API gratis, sin token: anime, canvas, IA, descargas, búsquedas, imágenes, herramientas, juegos y audios." />
         <meta name="author" content="lyanvalentinmail-prog" />
         <link rel="stylesheet" href="/css/style.css" />
     </head>
@@ -38,9 +38,10 @@
                 </p>
 
                 <p class="para">
-                    Incluye <code>anime</code>, <code>canvas</code> (memes e imágenes generadas), <code>tools</code>
-                    (qr, hash, base64…), <code>downloader</code> (video y audio), <code>searcher</code> (búsqueda en
-                    redes) y <code>reactions</code> (gifs y stickers).
+                    Nueve carpetas: <code>anime</code>, <code>canvas</code> (memes e imágenes generadas),
+                    <code>ia</code>, <code>descargas</code> (video y audio), <code>busquedas</code>,
+                    <code>imagenes</code>, <code>herramientas</code> (qr, hash, base64…), <code>juegos</code> y
+                    <code>audios</code>.
                 </p>
 
                 <div class="chips" id="chips" aria-label="Categorías disponibles">
@@ -80,10 +81,13 @@
                 const ICONS = {
                     anime: svg('<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>'),
                     canvas: svg('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.4"/><path d="M21 15.5l-4.5-4.5L5.5 21"/>'),
-                    tools: svg('<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/>'),
-                    downloader: svg('<path d="M12 3v12"/><polyline points="7 11 12 16 17 11"/><path d="M4 20h16"/>'),
-                    searcher: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/>'),
-                    reactions: svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><circle cx="9" cy="9.5" r=".9"/><circle cx="15" cy="9.5" r=".9"/>')
+                    ia: svg('<path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M18 15l.9 2.2 2.1.8-2.1.8L18 21l-.9-2.2-2.1-.8 2.1-.8z"/>'),
+                    descargas: svg('<path d="M12 3v12"/><polyline points="7 11 12 16 17 11"/><path d="M4 20h16"/>'),
+                    busquedas: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/>'),
+                    imagenes: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5-5-8 8"/>'),
+                    herramientas: svg('<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/>'),
+                    juegos: svg('<rect x="2.5" y="7" width="19" height="10" rx="4"/><path d="M7.5 10v4M5.5 12h4"/><circle cx="16" cy="11" r="1"/><circle cx="18" cy="13" r="1"/>'),
+                    audios: svg('<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>')
                 };
                 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 const chips = document.getElementById('chips');

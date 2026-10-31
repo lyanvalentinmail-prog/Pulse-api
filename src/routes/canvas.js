@@ -1,44 +1,41 @@
-// src/routes/canvas.js — GET /canvas/:id → PNG (o MP4/WebM en bratvideo/attp).
-// Todos los canvas aceptan parámetros modificables (ver /docs o la web).
+// src/routes/canvas.js — GET /canvas/:id → PNG o MP4.
+//
+// Tras la limpieza sólo quedan dos canvas publicados:
+//
+//   GET /canvas/brat       → PNG   (sticker brat)
+//   GET /canvas/bratvideo  → MP4   (palabras que aparecen una por una)
+//
+// El resto de los generadores se retiró junto con sus endpoints. Para volver a
+// publicar uno: agregá su id a `ALLOWED`, su generador en src/canvas/generators
+// y su ficha en src/catalog/canvas.js.
 const express = require('express');
-const { generateCanvas, txt, styleOf } = require('../utils/canvasEngine');
-const { bratVideo, attpVideo } = require('../utils/video');
+const { generateCanvas, txt } = require('../utils/canvasEngine');
+const { bratVideo } = require('../utils/video');
 const { sendPng, sendMedia, sendError } = require('../utils/response');
 const { findEndpoint } = require('../catalog');
 
 const router = express.Router();
 
-// Nombres viejos → nombre actual (igual al archivo de Drive).
-// Se mantienen para que las URLs que ya circulan no se rompan.
-const ALIASES = {
-  canvatextoxd: 'cartelboy',
-  fotopc: 'laptop',
-  sebusca: 'searched',
-  imagencanba: 'pcquote'
-};
-const resolveId = id => ALIASES[id] || id;
+// Únicos canvas habilitados.
+const ALLOWED = new Set(['brat', 'bratvideo']);
+
 // Las imágenes de la galería llegan en el cuerpo (JSON) para no meter un
-// `data:` enorme en la URL: POST /canvas/quotly  { "text": "...", "image": "data:..." }
+// `data:` enorme en la URL: POST /canvas/brat  { "text": "..." }
 const jsonBody = express.json({ limit: '24mb' });
 
 async function handleCanvas(req, res) {
-  const pedido = String(req.params.id || '').toLowerCase();
-  const id = resolveId(pedido);
-  // Parámetros del POST + query string (el body manda).
-  const q = { ...req.query, ...(req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {}) };
-  if (!findEndpoint('canvas', id)) {
+  const id = String(req.params.id || '').toLowerCase();
+  if (!ALLOWED.has(id) || !findEndpoint('canvas', id)) {
     return sendError(res, 404, `Canvas "${id}" no existe`, 'Revisa la lista en /canvas');
   }
+  // Parámetros del POST + query string (el body manda).
+  const q = { ...req.query, ...(req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {}) };
   try {
     if (id === 'bratvideo') {
       // Mismas opciones que /canvas/brat (tipografía y colores) + `words`
       // (cuántas palabras entran por pantalla, 5 por defecto).
       const buf = await bratVideo(txt(q, 'Welcome to Pulse API'), q);
       return sendMedia(res, buf, 'video/mp4', 'pulse-bratvideo.mp4');
-    }
-    if (id === 'attp') {
-      const buf = await attpVideo(txt(q, 'Welcome to Pulse'), { size: styleOf(q).scale });
-      return sendMedia(res, buf, 'video/webm', 'pulse-attp.webm');
     }
     const buf = await generateCanvas(id, q);
     if (!buf) return sendError(res, 404, `Canvas "${id}" no existe`, 'Revisa la lista en /canvas');

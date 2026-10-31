@@ -30,7 +30,7 @@ function layout({ title, body, script = '', bare = false }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#efefef">
 <title>${esc(title)}</title>
-<meta name="description" content="Pulse API — Anime, Canvas, Tools, Downloader, Searcher y Reactions. Sin token.">
+<meta name="description" content="Pulse API — Anime, Canvas, IA, Descargas, Busquedas, Imagenes, Herramientas, Juegos y Audios. Sin token.">
 <link rel="icon" href="/img/banner.jpg">
 <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -58,8 +58,12 @@ router.get('/welcome', (req, res) => {
 });
 
 // Alias antiguos → rutas nuevas
-router.get('/download', (req, res) => res.redirect('/downloader'));
-router.get('/search', (req, res) => res.redirect('/searcher'));
+router.get('/download', (req, res) => res.redirect('/descargas'));
+router.get('/downloader', (req, res) => res.redirect('/descargas'));
+router.get('/search', (req, res) => res.redirect('/busquedas'));
+router.get('/searcher', (req, res) => res.redirect('/busquedas'));
+router.get('/tools', (req, res) => res.redirect('/herramientas'));
+router.get('/reactions', (req, res) => res.redirect('/imagenes'));
 
 // ---------- / y /home (dashboard de carpetas) ----------
 router.get(['/', '/home'], (req, res) => {
@@ -96,10 +100,8 @@ router.get('/information', (req, res) => {
       <div><b>Base URL</b><br>${esc(base)}/</div>
       <div><b>Routers</b><br>${CATEGORIES.map(c => `<a href="/${c.id}">${esc(c.id)}</a>`).join(' · ')}</div>
       <div><b>Formato</b><br>JSON <code>{ creator, status, result }</code> · Canvas devuelve imagen/video directo</div>
-      <div><b>Sin NSFW</b><br>todas las fuentes de Anime y Reactions son SFW</div>
+      <div><b>Sin NSFW</b><br>contenido apto para todo público</div>
       <div><b>Texto limpio</b><br>agrega <code>?format=text</code> a cualquier endpoint JSON</div>
-      <div><b>Directo</b><br>en Download usa <code>?direct=true|mp3|mp4</code> para el archivo (Range 206)</div>
-      <div><b>Respaldos</b><br>si YouTube/Instagram/Facebook bloquean al servidor, cada descarga cae a <code>cobalt</code> (configurá <code>COBALT_API_URL</code> con tu instancia)</div>
       <div><b>Descargar</b><br>agregá <code>?download=true</code> a cualquier endpoint y el archivo baja como adjunto</div>
       <div><b>Catálogo JSON</b><br><a href="/docs">/docs</a></div>
       <div><b>GitHub</b><br><a href="${esc(config.githubUrl)}" target="_blank" rel="noopener">${esc(config.githubUrl.replace('https://', ''))}</a></div>
@@ -158,8 +160,10 @@ router.get('/docs', (req, res) => {
 });
 
 // ---------- /<categoria> ----------
-router.get('/:category(anime|canvas|tools|downloader|searcher|reactions)', (req, res) => {
-  const cat = findCategory(req.params.category);
+// Una ruta por categoría (así /ia y /descargas existen desde el primer endpoint).
+const CATEGORY_PAGES = CATEGORIES.map(c => `/${c.id}`);
+router.get(CATEGORY_PAGES, (req, res) => {
+  const cat = findCategory(req.path.replace(/^\//, ''));
   if (!cat) return res.status(404).send('Not found');
   const { a1, a2 } = avatars(req);
 
@@ -179,7 +183,13 @@ router.get('/:category(anime|canvas|tools|downloader|searcher|reactions)', (req,
   };
 
   // La lista sigue el orden del catálogo; los grupos siguen disponibles en /docs.
-  const rows = cat.endpoints.map(rowOf).join('');
+  // Una categoría recién creada no tiene endpoints: se avisa en vez de dejar el hueco.
+  const rows = cat.endpoints.length
+    ? cat.endpoints.map(rowOf).join('')
+    : `<div class="row"><div class="info">
+        <h3>SIN ENDPOINTS TODAVÍA</h3>
+        <div class="meta">Esta carpeta está lista. El primero se agrega en <code>src/routes/${esc(cat.id)}.js</code> y su ficha en <code>src/catalog/${esc(cat.id)}.js</code>.</div>
+      </div></div>`;
   const totalParams = cat.endpoints.reduce((n, e) => n + e.params.length, 0);
 
   const testerData = {
@@ -202,7 +212,7 @@ router.get('/:category(anime|canvas|tools|downloader|searcher|reactions)', (req,
   const body = `
     <header>
       <h1 class="title"><a href="/${esc(cat.id)}">${esc(cat.id)}</a></h1>
-      <div class="sync">Sync complete · ${cat.endpoints.length} endpoints</div>
+      <div class="sync">Sync complete · ${cat.endpoints.length} endpoint${cat.endpoints.length === 1 ? '' : 's'}</div>
       <p class="intro">${esc(cat.desc || 'Base de datos sincronizada')}.<br>Puedes hacer <b>peticiones</b> simplemente pulsando en <b>test</b>.</p>
     </header>
 
