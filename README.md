@@ -676,3 +676,344 @@ ffmpeg, y enruta todo a la función `api/index.js`.
 > En Vercel las peticiones y respuestas de funciones tienen un tope de ~4.5 MB. Para fotos de
 > galería y archivos grandes de canvas o `/downloader/*?direct=…`, conviene usar Render u otro servidor.
 
+---
+
+## 📘 Apéndice — Cómo editar y agregar TODO en esta API (canvas, API, endpoints y más)
+
+Esta sección es la guía completa de "aquí se toca todo". **No borra ni cambia nada de lo anterior**: solo agrega el paso a paso para editar lo que ya existe y para agregar cosas nuevas (endpoints de texto/JSON, canvas de imagen, categorías nuevas, plantillas, fuentes de datos…).
+
+Si querés hacer los cambios **sin instalar nada**, leé también **[GUIA-ENDPOINTS-GITHUB.md](GUIA-ENDPOINTS-GITHUB.md)** (todo desde el navegador de GitHub). Esta versión es la de terminal/local.
+
+---
+
+### 1. Las 3 capas del proyecto (dónde está cada cosa)
+
+Pensá la API en 3 capas que se leen entre sí:
+
+| Capa | Archivos | Para qué sirve |
+|------|----------|----------------|
+| **Catálogo** | `src/catalog/<categoría>.js` | La ficha de cada endpoint: `id`, `desc`, `params`. De acá salen `/docs`, el home, la página de cada categoría y el probador **TEST** de la web. |
+| **Rutas** | `src/routes/<categoría>.js` | El código que responde `GET /<categoría>/:id` (o `POST`). |
+| **Generadores (canvas)** | `src/canvas/generators/<id>.js` + `src/canvas/layouts.js` | El dibujo de cada canvas (PNG/MP4/WebM) y sus medidas/estilos por defecto. |
+
+**Regla de oro:** el catálogo manda. Si agregás un endpoint en el código pero no en el catálogo, responde pero no aparece en la web ni en `/docs`. Si lo agregás solo en el catálogo, aparece en la web pero puede dar 404.
+
+Categorías actuales: `anime`, `canvas`, `tools`, `downloader`, `searcher`, `reactions`.
+
+---
+
+### 2. Cómo editar un endpoint que ya existe
+
+#### 2.1 Descripción, ejemplo o parámetros (lo más común)
+
+Editá `src/catalog/<categoría>.js`, buscá la entrada y cambiá el texto. Nada más: la web y `/docs` se actualizan solas.
+
+```js
+{ id: 'morse', desc: 'Código Morse: pasa texto a puntos y rayas (y al revés)', params: [
+  P('text', 'SOS', 'Texto o código morse'),
+  S('mode', 'encode', 'encode = texto → morse, decode = morse → texto', ['encode', 'decode']),
+  O('separator', '/', 'Separador entre palabras al codificar')
+] }
+```
+
+- `P(nombre, ejemplo, desc)` → parámetro **requerido** (chip `REQUERIDO`).
+- `O(nombre, ejemplo, desc)` → parámetro **opcional** (chip `OPCIONAL`).
+- `S(nombre, ejemplo, desc, [opciones])` → opcional con **lista desplegable**.
+- `AV` / `AV2` como ejemplo → la web los reemplaza por los avatares por defecto.
+- `...textStyle()` y `...photoStyle()` → los 8 parámetros de estilo (`color`, `size`, `font`…).
+
+#### 2.2 Valores por defecto de un canvas (sin tocar código)
+
+Las medidas y estilos viven en `src/canvas/layouts.js`, en bloques con nombre (`text`, `photo`, `bubble`, `msg`, `time`, `bar`, `title`…). Cada clave se puede pisar desde la URL:
+
+```
+/canvas/iqc?msg.size=1.3&msg.color=ffe066&bubble.width=0.6&time.color=9ad0ff
+/canvas/brat?text.size=1.2&text.fill=ff0044&canvas.bg=8ACE00
+```
+
+| Clave | Qué controla |
+|-------|--------------|
+| `x0, y0, x1, y1` | Área en fracciones (0–1) de la plantilla o del lienzo |
+| `color` / `fill` / `bg` | Colores (hex sin `#`, o `white`, `black`…) |
+| `size` | Escala tipográfica (`0.5` = mitad, `2` = doble) |
+| `font` (`sans`, `hand`, `serif`, `mono`), `weight`, `align`, `uppercase`, `spacing`, `lineHeight`, `rotate` | Tipografía |
+| `radius`, `pad`, `zoom`, `opacity` | Formas, márgenes y fotos |
+
+#### 2.3 El dibujo de un canvas
+
+Editá `src/canvas/generators/<id>.js`. Cada canvas es un archivo suelto con una sola función que devuelve un `Buffer`.
+
+#### 2.4 Fuentes de datos (Downloader, Reactions, Anime)
+
+Editá `src/utils/providers.js` (orden de proveedores, respaldos, `firstSuccess`). Si un servicio se cae, se agrega otro a la lista: no se toca la ruta.
+
+---
+
+### 3. Cómo agregar un endpoint de texto/JSON nuevo (4 pasos)
+
+#### Paso 1 — la ruta (`src/routes/<categoría>.js`)
+
+Abrí el router de la categoría y agregá el handler **antes** de `module.exports = router;`:
+
+```js
+// GET /tools/palabras  →  { creator: 'Pulse', status: true, result: { … } }
+router.get('/palabras', async (req, res) => {
+  try {
+    const text = String(req.query.text || '').trim();
+    if (!text) return sendError(res, 400, 'Falta el parámetro text', 'Ejemplo: /tools/palabras?text=hola mundo');
+    const words = text.split(/\s+/).filter(Boolean);
+    return sendSuccess(res, { words: words.length, characters: text.length });
+  } catch (e) {
+    return sendError(res, 500, 'No se pudo procesar el texto', e.message);
+  }
+});
+```
+
+- Usá siempre `sendSuccess(res, objeto)` y `sendError(res, código, mensaje, pista)` (ya agregan `creator` y `status`).
+- Lo que manda el usuario por URL está en `req.query`.
+- Los nombres de los parámetros del catálogo tienen que coincidir con los que leés en `req.query`.
+- El router ya está montado en `src/server.js` (`app.use('/tools', tools)`): no hay que registrar endpoint por endpoint.
+
+#### Paso 2 — la ficha (`src/catalog/<categoría>.js`)
+
+```js
+{ id: 'palabras', desc: 'Cuenta palabras y caracteres de un texto', params: [
+  P('text', 'hola mundo', 'Texto a analizar')
+] }
+```
+
+#### Paso 3 — validar
+
+```bash
+npm run check   # valida ids, desc, parámetros, routers y canvas ↔ catálogo
+```
+
+#### Paso 4 — probar
+
+```bash
+npm start
+# http://localhost:3000/home          → tarjeta con el contador actualizado
+# http://localhost:3000/docs          → JSON del catálogo
+# http://localhost:3000/tools/palabras?text=hola%20mundo
+```
+
+La ruta aparece sola en `/home`, `/docs` y la web.
+
+---
+
+### 4. Cómo agregar un canvas nuevo (imagen / PNG)
+
+Un canvas es un generador que devuelve un `Buffer` y se **registra solo**: `src/canvas/generators/index.js` carga automáticamente todo `src/canvas/generators/*.js`. No hay índice que tocar.
+
+#### Paso 1 — la plantilla (opcional)
+
+- Si el canvas usa una imagen de fondo, subila a `assets/templates/` (Add file → Upload files en GitHub, o copiála localmente). JPG/PNG, idealmente ≤ 1500 px de ancho.
+- Si el canvas dibuja todo por código (fondo generado), saltá este paso.
+
+#### Paso 2 — el generador (`src/canvas/generators/<id>.js`)
+
+Creá el archivo (nombre en minúsculas, sin espacios):
+
+```js
+// src/canvas/generators/miCanvas.js — canvas nuevo
+const { sharp, templateMeta, partsOf, boxOf, txt, textLayer, styleOf } = require('./_helpers');
+
+module.exports = async function miCanvas(q) {
+  const parts = partsOf('miCanvas');                 // medidas de layouts.js
+  const ov = styleOf(q);                             // color, size, font, rotate, x, y…
+  const { buf, width: W, height: H } = await templateMeta(parts.template);
+  const box = boxOf('miCanvas', 'text', q);          // área con overrides de la URL
+  const text = txt(q, 'Mi texto');                   // query.text o el valor por defecto
+
+  const layer = textLayer({
+    text, width: Math.round((box.x1 - box.x0) * W), height: Math.round((box.y1 - box.y0) * H),
+    family: 'sans', weight: 700, maxFont: 64, maxLines: 3, align: 'middle',
+    fill: ov.fill || '#ffffff'
+  });
+
+  return sharp(buf).composite([{
+    input: layer.svg, left: Math.round(box.x0 * W), top: Math.round(box.y0 * H)
+  }]).png().toBuffer();
+};
+```
+
+**Reglas de oro de los canvas:**
+
+- **Nunca** `<text>` dentro de un SVG: usá `textLayer()` (fuentes empaquetadas → nunca `▯▯▯`).
+  Familias: `sans` (Inter), `hand` (Caveat Brush, letra a mano de `bratcoyote`), `serif` (Playfair Display), `mono` (JetBrains Mono). Para sumar otra: copiá el `.ttf` a `assets/fonts` (con su licencia OFL al lado) y agregala a `FAMILIES` en `src/utils/textEngine.js`.
+- Los textos **crecen hacia abajo** (más líneas, no letra más chica): `textLayer` + `fitLines`.
+- Nada de medidas clavadas en el código: van en `layouts.js` y se leen con `P` / `boxOf`.
+- Todo parámetro nuevo tiene que poder pisarse por query: `<parte>.<clave>=valor`.
+- La imagen sale sin marco y el fondo respeta `?bg=` / `canvas.bg`.
+
+#### Paso 3 — las medidas (`src/canvas/layouts.js`)
+
+Agregá un bloque con el mismo `id`. Coordenadas en fracciones (0–1) del ancho/alto de la plantilla:
+
+```js
+miCanvas: {
+  label: 'Mi canvas',
+  parts: {
+    template: 'MiPlantilla.jpg',                       // assets/templates/
+    text: {
+      box: { x0: 0.08, y0: 0.55, x1: 0.92, y1: 0.80 },
+      font: { family: 'sans', weight: 700, maxFont: 64, maxLines: 3 },
+      fill: '#ffffff'
+    }
+  }
+},
+```
+
+Overrides en vivo: `/canvas/miCanvas?text.size=1.2&text.color=ff2d55&photo.y1=0.60`.
+
+#### Paso 4 — la ficha (`src/catalog/canvas.js`)
+
+```js
+{ id: 'miCanvas', group: 'imagenes', desc: 'Tu foto dentro de Mi Plantilla', params: [
+  P('url', AV, 'Tu foto (URL o galería)'),
+  ...photoStyle()
+] }
+```
+
+- `group`: sección de la web (`textos`, `brats`, `porcentajes`, `imagenes`, `filtros`, `personajes`). Ver `GROUPS` arriba de `src/catalog/canvas.js`.
+- `media` (opcional): `'image'`, `'video'` o `'audio'` → la web muestra la vista previa correcta.
+
+#### Paso 5 — validar y probar
+
+```bash
+npm run check
+npm test                                   # renderiza todos los canvas
+curl "http://localhost:3000/canvas/miCanvas?url=https://…/foto.jpg&text=hola" -o miCanvas.png
+```
+
+Para empezar, copiá el canvas más parecido:
+
+| Querés… | Copiá de |
+|---------|----------|
+| Texto sobre plantilla fija | `generators/bratanime.js` o `generators/absolutecinema.js` |
+| Foto del usuario en un hueco/recorte | `generators/rata.js` (`facePart`) o `generators/pan.js` (`chromaPart`) |
+| Lienzo propio con fondo y texto | `generators/brat.js` o `generators/gaycard.js` |
+| Chat / burbuja que crece | `generators/iqc.js` |
+| Video | `bratvideo` y `attp` se resuelven en `src/routes/canvas.js` con `src/utils/video.js` |
+
+---
+
+### 5. Cómo se declaran los parámetros (`P`, `O`, `S`, `AV`, `AV2`…)
+
+Todo sale de `src/catalog/helpers.js`:
+
+| Helper | Qué hace |
+|--------|----------|
+| `P(nombre, ejemplo, desc)` | Parámetro **requerido** |
+| `O(nombre, ejemplo, desc)` | Parámetro **opcional** |
+| `S(nombre, ejemplo, desc, [opciones])` | Opcional con **lista desplegable** (`<select>`) |
+| `AV` / `AV2` | Ejemplo especial: la web lo reemplaza por el avatar por defecto |
+| `...textStyle()` | Agrega `color`, `size`, `font`, `uppercase`, `x`, `y`, `rotate`, `spacing` |
+| `...photoStyle()` | Agrega `images` (varias fotos), `zoom`, `grayscale`, `rotate` |
+
+Lo que verifica `npm run check` (y la CI en cada PR):
+
+- `id` en minúsculas, sin espacios (letras, números y guiones).
+- No dos endpoints con el mismo `id` dentro de la misma categoría.
+- No dos parámetros con el mismo nombre en un endpoint.
+- `desc` en todos los endpoints y en todos los parámetros.
+- `media`, si está, tiene que ser `image`, `video` o `audio`.
+
+---
+
+### 6. Cómo agregar una categoría nueva (poco frecuente)
+
+1. Creá `src/catalog/<id>.js` copiando otra (`id`, `name`, `endpoints`).
+2. Sumala a `CATEGORIES` en `src/catalog/index.js` (el home las muestra por nombre).
+3. Creá `src/routes/<id>.js` con su `express.Router()`.
+4. Montala en `src/server.js`: `app.use('/<id>', require('./routes/<id>'))`.
+5. Agregá la categoría a `ROUTES` en `scripts/validate-catalog.js`.
+
+`npm run check` avisa si falta el router o si el catálogo y el motor no coinciden.
+
+---
+
+### 7. Cómo probar todo en local
+
+```bash
+npm install           # dependencias (Node 24.x)
+npm start             # http://localhost:3000/home
+npm run dev           # con --watch (se reinicia solo al guardar)
+npm run check         # valida el catálogo
+npm run lint          # análisis estático (eslint)
+npm test              # smoke + 104 rutas HTTP + proveedores simulados + canvas
+npm run test:endpoints   # todas las rutas del catálogo por HTTP
+npm run test:integrations# routers y proveedores con HTTP externo simulado
+npm run test:providers   # lógica de proveedores y respaldos simulados
+```
+
+URLs útiles de prueba:
+- `http://localhost:3000/home` — dashboard con todas las tarjetas.
+- `http://localhost:3000/docs` — catálogo JSON completo.
+- `http://localhost:3000/canvas/<id>?text=hola` — probá cada canvas.
+- `http://localhost:3000/<categoría>/<id>?param=valor` — probá cada endpoint.
+
+---
+
+### 8. Cómo subir los cambios (desde GitHub, sin clonar el repo)
+
+1. Entrá al repo en GitHub y abrí el archivo que querés cambiar.
+2. Tocá el lápiz ✏️ (*Edit this file*). Con la tecla **`.`** se abre github.dev, un editor completo en el navegador.
+3. Hacé el cambio y tocá **Commit changes…**.
+4. Elegí **Create a new branch for this commit and start a pull request**, ponle nombre a la rama (ej. `feat/micanvas`) y dale a **Propose changes**.
+5. Se abre el Pull Request: poné un título claro (`feat(canvas): endpoint miCanvas` / `fix(tools): morse con acentos`).
+6. Esperá a que los checks estén en verde ✅ (Vercel preview + check + test).
+7. En **Files changed** revisá que el diff tenga **solo** lo que querías cambiar.
+8. **Merge pull request** → **Confirm merge**. En ~2 minutos está en producción.
+9. Borrá la rama con **Delete branch**.
+
+**Si algo salió mal:** abrí el PR mergeado → **Revert** → se crea un PR de reversión → mergeá ese. También podés editar el archivo y hacer otro PR (es lo más rápido).
+
+No se edita `main` directamente salvo cambios de textos (una coma, una descripción).
+
+---
+
+### 9. Checklist antes de abrir el Pull Request
+
+- [ ] `npm run check` sin errores (los `⚠️` son avisos: revisalos igual).
+- [ ] `npm test` en verde (incluye todos los canvas).
+- [ ] Si agregaste un canvas: se ve bien en `/canvas/<id>` y responde a `?text=`, `?color=`, `?size=`.
+- [ ] Texto largo probado (3–4 líneas): no se corta, no se achica de más.
+- [ ] Sin `▯▯▯`: todo texto pasa por `textLayer`.
+- [ ] Si es canvas nuevo: ¿tiene plantilla en `assets/templates/`, bloque en `layouts.js`, generador en `src/canvas/generators/` y ficha en `src/catalog/canvas.js` con `group`?
+- [ ] Sin claves de IA ni contenido NSFW (fuentes SFW).
+- [ ] Si agregaste o borraste un endpoint, actualizá su tabla en el README y el contador del título de la categoría.
+
+---
+
+### 10. Errores frecuentes y cómo solucionarlos
+
+| Síntoma | Causa probable | Solución |
+|---------|---------------|----------|
+| Aparece en la web pero da **404** | Está en el catálogo y no en las rutas | Agregá el handler en `src/routes/<categoría>.js` |
+| Responde pero **no aparece** en la web | Falta la ficha | Agregalo en `src/catalog/<categoría>.js` |
+| Check falla: *"el id debe ser minúsculas"* | `PascalCase` o espacios | `miCanvas` → `micanvas` |
+| Canvas devuelve la **foto predeterminada** | Nombre de parámetro que el generador no lee, o URL inválida | Usá `url`/`image` como figura en la ficha; si la URL es inválida responde **400** con el motivo |
+| Texto se sale del cartel | `maxFont` muy grande para la caja | Bajá `maxFont` o achicá `maxLines` en `layouts.js` |
+| Web muestra **cuadrado vacío** en vez de imagen | La plantilla no existe en `assets/templates/` | Subila con *Add file → Upload files* |
+| PR dice *"This branch has conflicts"* | Alguien tocó la misma línea en `main` | **Resolve conflicts** en GitHub y elegí la versión correcta |
+| Emoji/seña muestra `▯` | Se usó `<text>` en SVG en vez de `textLayer` | Reescribí esa parte con `textLayer()` y fuentes empaquetadas |
+
+---
+
+### 11. Despliegue (recordatorio)
+
+**Render** (`render.yaml`): build `npm install`, start `npm start`. Recomendado para los endpoints de descarga (sin límite de tamaño de respuesta).
+
+**Vercel** (`vercel.json`): declara `"framework": null` para que Vercel no use el preset de Next.js, empaqueta `assets/**` (plantillas de Canvas), `public/**` y el binario de ffmpeg, y enruta todo a `api/index.js`.
+
+1. Importá el repo en Vercel y elegí **Framework Preset: Other**.
+2. En *Settings → Git → Production Branch* seleccioná **`main`** (no una rama de `arena/…`).
+3. Redeploy.
+
+> En Vercel las peticiones y respuestas de funciones tienen un tope de ~4.5 MB. Para fotos de galería y archivos grandes de canvas o `/downloader/*?direct=…`, conviene usar Render u otro servidor.
+
+---
+
+Con esto tenés el mapa completo: **catálogo → rutas → generadores → pruebas → PR → producción**. Cualquier cosa nueva (canvas, API, endpoint, categoría) pasa por esos mismos pasos.
+
