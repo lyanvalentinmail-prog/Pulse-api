@@ -139,26 +139,84 @@ const LAYOUTS = {
     label: 'Chat de WhatsApp (burbuja que crece)',
     parts: {
       template: 'iqc.jpg',
-      // globo medido sobre la plantilla (736x1308)
+
+      // Globo principal
       bubble: {
-        box: { x0: 0.0408, y0: 0.4380, x1: 0.7500, y1: 0.5864 },
+        box: {
+          x0: 0.0408,
+          y0: 0.4380,
+          x1: 0.7500,
+          y1: 0.5864
+        },
         radius: 0.032,
         bg: '#2a2a2a',
-        pad: { top: 0.0122, bottom: 0.0076, gap: 0.0176 }
+        pad: {
+          top: 0.0122,
+          bottom: 0.0076,
+          gap: 0.0176
+        }
       },
-      // cita dentro del globo (panel apenas más oscuro que el globo)
+
+      // Respuesta citada
       quote: {
-        box: { x0: 0.0503, y0: 0.4419, x1: 0.7405, y1: 0.5298 },
+        box: {
+          x0: 0.0503,
+          y0: 0.4419,
+          x1: 0.7350,
+          y1: 0.5298
+        },
         bg: '#212121',
         bar: '#f97b8c',
-        barWidth: 0.0109,
+        barWidth: 0.0120,
         padX: 0.0380,
-        name: { x: 0.0870, y: 0.4670, font: { family: 'sans', weight: 600, size: 24 }, fill: '#e8848c' },
-        text: { x: 0.0856, y: 0.4985, font: { family: 'sans', weight: 400, size: 27 }, fill: '#e9edef' }
+
+        name: {
+          x: 0.0870,
+          y: 0.4670,
+          font: {
+            family: 'sans',
+            weight: 600,
+            size: 24
+          },
+          fill: '#e8848c'
+        },
+
+        text: {
+          x: 0.0856,
+          y: 0.4985,
+          font: {
+            family: 'sans',
+            weight: 400,
+            size: 27
+          },
+          fill: '#e9edef'
+        }
       },
-      // mensaje y hora
-      msg: { x: 0.0679, y: 0.5474, font: { family: 'sans', weight: 400, size: 30, lineHeight: 1.36 }, fill: '#e9edef' },
-      time: { right: 0.7215, y: 0.5670, font: { family: 'sans', weight: 400, size: 22 }, fill: '#a9b4bb' }
+
+      // Mensaje
+      msg: {
+        x: 0.0679,
+        y: 0.5474,
+        font: {
+          family: 'sans',
+          weight: 400,
+          size: 30,
+          lineHeight: 1.36
+        },
+        fill: '#e9edef'
+      },
+
+      // Hora
+      time: {
+        right: 0.7215,
+        y: 0.5670,
+        font: {
+          family: 'sans',
+          weight: 400,
+          size: 22
+        },
+        fill: '#a9b4bb'
+      }
     }
   },
 
