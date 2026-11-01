@@ -16,7 +16,7 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 const config = require('../config');
-const { fetchJson, fetchText, fetchBuffer, postJson, UA_DESKTOP, UA_MOBILE } = require('./http');
+const { fetchJson, fetchText, fetchBuffer, postJson, firstFast, UA_DESKTOP, UA_MOBILE } = require('./http');
 
 const TIMEOUT = 15000;
 
@@ -42,7 +42,7 @@ function normalizeUrl(raw, { hosts = null, label = 'url' } = {}) {
   let url;
   try { url = new URL(value.startsWith('http') ? value : `https://${value}`); }
   catch (_) { throw badRequest('La URL no es válida'); }
-  if (!['http:', 'https:'].includes(url.protocol)) throw badRequest('Sólo se aceptan enlaces http o https');
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw badRequest('Sólo se aceptan enlaces http o https sin credenciales');
   if (hosts && !hosts.some(h => url.hostname === h || url.hostname.endsWith(`.${h}`))) {
     throw badRequest(`Ese enlace no es de ${hosts[0]}`, `Se esperaba algo como https://www.${hosts[0]}/…`);
   }
@@ -133,7 +133,7 @@ function parsePinterest(html) {
 
 async function pinterest(rawUrl) {
   const url = normalizeUrl(rawUrl, { hosts: ['pinterest.com', 'pin.it'], label: 'url' });
-  const html = await fetchText(url, { timeoutMs: TIMEOUT, headers: { Accept: 'text/html', 'Accept-Language': 'es-UY,es;q=0.9,en;q=0.8' } });
+  const html = await fetchText(url, { publicOnly: true, timeoutMs: TIMEOUT, headers: { Accept: 'text/html', 'Accept-Language': 'es-UY,es;q=0.9,en;q=0.8' } });
   const data = parsePinterest(html);
   if (!data.video && !data.image) throw notFound('No encontré la imagen o el video de ese pin', 'Los tableros privados no se pueden descargar');
   return { source: 'pinterest', ...data };
@@ -170,7 +170,7 @@ async function instagram(rawUrl) {
   const errors = [];
   for (const [label, target] of sources) {
     try {
-      const html = await fetchText(target, { timeoutMs: TIMEOUT, headers });
+      const html = await fetchText(target, { publicOnly: true, timeoutMs: TIMEOUT, headers });
       const data = parseInstagram(html);
       if (data.video || data.image) return { source: label, shortcode: code, ...data };
       errors.push(`${label}: sin multimedia`);
@@ -213,7 +213,7 @@ async function facebook(rawUrl) {
   const errors = [];
   for (const [label, target] of sources) {
     try {
-      const html = await fetchText(target, { timeoutMs: TIMEOUT, headers });
+      const html = await fetchText(target, { publicOnly: true, timeoutMs: TIMEOUT, headers });
       const data = parseFacebook(html);
       if (data.video) return { source: label, ...data };
       errors.push(`${label}: sin video`);
@@ -291,60 +291,50 @@ function parseCobalt(json) {
 
 async function cobaltResolve(url, mode) {
   const bases = config.cobaltUrl ? [config.cobaltUrl.replace(/\/$/, '')] : COBALT_PUBLIC;
-  const errors = [];
-  for (const base of bases) {
-    try {
-      const json = await postJson(`${base}/`, {
-        url,
-        downloadMode: mode === 'audio' ? 'audio' : 'video',
-        videoQuality: '1080',
-        audioFormat: 'mp3',
-        filenameStyle: 'basic'
-      }, { timeoutMs: TIMEOUT, headers: { Accept: 'application/json' } });
-      const data = parseCobalt(json);
-      if (data.url) return { source: `cobalt:${new URL(base).hostname}`, ...data };
-      errors.push(`${base}: ${data.error}`);
-    } catch (e) { errors.push(`${base}: ${e.message}`); }
-  }
-  const err = new Error('cobalt no respondió');
-  err.details = errors;
-  throw err;
+  const producers = bases.map(base => [base, async () => {
+    const json = await postJson(`${base}/`, {
+      url, downloadMode: mode === 'audio' ? 'audio' : 'video',
+      videoQuality: '1080', audioFormat: 'mp3', filenameStyle: 'basic'
+    }, { timeoutMs: TIMEOUT, headers: { Accept: 'application/json' } });
+    const data = parseCobalt(json);
+    return data.url ? { source: `cobalt:${new URL(base).hostname}`, ...data } : null;
+  }]);
+  return (await firstFast(producers, { timeoutMs: TIMEOUT + 500 })).value;
 }
 
-async function pipedResolve(id) {
+async function pipedResolve(id, mode) {
   const bases = ['https://pipedapi.kavin.rocks', 'https://pipedapi.adminforge.de', 'https://api.piped.private.coffee'];
-  const errors = [];
-  for (const base of bases) {
-    try {
-      const json = await fetchJson(`${base}/streams/${id}`, { timeoutMs: TIMEOUT });
-      const data = parsePipedStreams(json, base);
-      if (data.audio || data.video) return { source: `piped:${new URL(base).hostname}`, ...data };
-      errors.push(`${base}: sin streams`);
-    } catch (e) { errors.push(`${base}: ${e.message}`); }
-  }
-  const err = new Error('Piped no respondió');
-  err.details = errors;
-  throw err;
+  const producers = bases.map(base => [base, async () => {
+    const json = await fetchJson(`${base}/streams/${id}`, { timeoutMs: TIMEOUT });
+    const data = parsePipedStreams(json, base);
+    return (mode === 'audio' ? data.audio : data.video) ? { source: `piped:${new URL(base).hostname}`, ...data } : null;
+  }]);
+  return (await firstFast(producers, { timeoutMs: TIMEOUT + 500 })).value;
 }
 
 async function youtube(rawUrl, mode = 'video') {
   const url = normalizeUrl(rawUrl, { hosts: ['youtube.com', 'youtu.be', 'm.youtube.com', 'music.youtube.com'], label: 'url' });
   const id = parseYouTubeId(url);
   if (!id) throw badRequest('No pude leer el ID del video', 'Acepta /watch?v=ID, youtu.be/ID y /shorts/ID');
-  const errors = [];
   try {
-    const cobalt = await cobaltResolve(url, mode);
-    return { id, mode, title: '', thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, download: cobalt.url, ...cobalt };
-  } catch (e) { errors.push(...(e.details || [e.message])); }
-  try {
-    const piped = await pipedResolve(id);
-    return { id, mode, download: mode === 'audio' ? piped.audio : piped.video, ...piped, ...(mode === 'audio' ? { audio: piped.audio } : { video: piped.video }) };
-  } catch (e) { errors.push(...(e.details || [e.message])); }
-  const err = new Error('Ningún resolvedor de YouTube respondió');
-  err.status = 502;
-  err.hint = 'Configurá COBALT_API_URL con tu instancia de cobalt (https://github.com/imputnet/cobalt)';
-  err.details = errors;
-  throw err;
+    const result = await firstFast([
+      ['cobalt', async () => {
+        const cobalt = await cobaltResolve(url, mode);
+        return { id, mode, title: '', thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, download: cobalt.url, ...cobalt };
+      }],
+      ['piped', async () => {
+        const piped = await pipedResolve(id, mode);
+        return { id, mode, download: mode === 'audio' ? piped.audio : piped.video, ...piped };
+      }]
+    ], { timeoutMs: TIMEOUT + 1000 });
+    return result.value;
+  } catch (e) {
+    const err = new Error('Ningún resolvedor de YouTube respondió');
+    err.status = 502;
+    err.hint = 'Configurá COBALT_API_URL con tu instancia de cobalt (https://github.com/imputnet/cobalt)';
+    err.details = e.details;
+    throw err;
+  }
 }
 
 // =================================================================== Audio
@@ -364,7 +354,7 @@ function runFfmpeg(args, timeoutMs = 45000) {
 /** Descarga un archivo remoto y devuelve su audio como MP3. */
 async function toMp3(remoteUrl, { maxBytes = 60 * 1024 * 1024 } = {}) {
   const url = normalizeUrl(remoteUrl, { label: 'url' });
-  const buffer = await fetchBuffer(url, { maxBytes, timeoutMs: 30000 });
+  const buffer = await fetchBuffer(url, { publicOnly: true, maxBytes, timeoutMs: 30000 });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-mp3-'));
   try {
     const input = path.join(dir, 'in.bin');

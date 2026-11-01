@@ -194,8 +194,8 @@
       if (typeof r.gif === 'string') return r.gif;
       if (typeof r.thumbnail === 'string') return r.thumbnail;
       if (typeof r.cover === 'string') return r.cover;
-      const first = Array.isArray(r.results) ? r.results[0] : null;
-      if (first) return first.image || first.gif || first.thumbnail || first.cover || first.trayIcon || first.url || null;
+      const first = Array.isArray(r.items) ? r.items[0] : (Array.isArray(r.results) ? r.results[0] : null);
+      if (first) return first.image || first.preview || first.gif || first.thumbnail || first.cover || first.trayIcon || first.url || null;
       if (Array.isArray(r) && r[0]) return r[0].image || r[0].gif || r[0].cover || r[0].url || null;
       if (Array.isArray(r.images) && r.images[0]) return r.images[0].url || r.images[0].image || null;
     } catch (_) { /* noop */ }
@@ -306,7 +306,7 @@
     if (p.type === 'audio') {
       return `<div class="preview" style="padding:12px"><audio src="${esc(p.url)}" controls preload="metadata" style="width:100%"></audio></div>`;
     }
-    return `<div class="preview"><video src="${esc(p.url)}" controls playsinline preload="metadata"></video></div>`;
+    return `<div class="preview"><video src="${esc(p.url)}" controls playsinline preload="none"></video></div>`;
   }
 
   // ---------- Contador de pruebas (HITS) ----------
@@ -356,7 +356,7 @@
         const ext = (type.split('/')[1] || 'png').split(';')[0].replace('jpeg', 'jpg');
         result.innerHTML = `
           <div class="res-bar">${okChip}<span class="res-meta">Imagen HD · ${ms} ms</span>
-            ${btnDescargar(downloadHref(path, null, type), `${tester.dataset.endpoint}.${ext}`)}</div>
+            ${btnDescargar(url, `${tester.dataset.endpoint}.${ext}`)}</div>
           <div class="preview"><img src="${url}" alt="resultado de ${esc(tester.dataset.endpoint)}"></div>`;
       } else if (type.startsWith('video/')) {
         // Se usa la URL del endpoint (no un blob) para que el navegador pida
@@ -375,15 +375,27 @@
           <div class="preview" style="padding:10px"><audio src="${path}" controls autoplay style="width:100%"></audio></div>`;
       } else if (type.includes('application/json')) {
         const json = await res.json();
-        const playable = findPlayable(json);
-        const preview = findPreviewImage(json);
-        const archivo = archivoDe(json, playable ? `${playable.type}/` : 'image/', tester.dataset.endpoint);
+        const r = json.result || {};
+        const isDownload = tester.dataset.category === 'descargas';
+        const direct = withParams(path, 'direct=true');
+        const mediaType = r.type === 'image' ? 'image' :
+          ['spotify', 'youtubemp3', 'audio'].includes(tester.dataset.endpoint) ? 'audio' : 'video';
+        const hasMedia = isDownload && (r.video || r.videoHd || r.image || r.preview || r.download || r.audio || (Array.isArray(r.images) && r.images.length) || tester.dataset.endpoint === 'audio');
+        const playable = hasMedia && mediaType !== 'image' ? { type: mediaType, url: direct } : findPlayable(json);
+        const preview = hasMedia && mediaType === 'image' ? direct : findPreviewImage(json);
+        const archivo = hasMedia ? { href: withParams(direct, 'download=true') } : archivoDe(json, playable ? `${playable.type}/` : 'image/', tester.dataset.endpoint);
         const nombreJson = `${tester.dataset.endpoint}.json`;
-        const nombreArch = `${tester.dataset.endpoint}.${playable ? (playable.type === 'audio' ? 'mp3' : 'mp4') : 'jpg'}`;
+        const nombreArch = `${tester.dataset.endpoint}.${mediaType === 'audio' ? 'mp3' : mediaType === 'video' ? 'mp4' : 'jpg'}`;
         const btn = archivo ? btnDescargar(archivo.href, nombreArch, archivo.externo) : btnDescargarTexto(nombreJson);
+        const cards = Array.isArray(r.items) ? r.items.map((item, index) => {
+          const photo = item.image || item.preview || item.cover || item.thumbnail;
+          const video = !!item.video || (tester.dataset.endpoint === 'youtube' && !!item.link) || item.type === 'video';
+          const media = item.playback && video ? playerHtml({ type: 'video', url: item.playback }) : photo ? `<div class="preview"><img src="${esc(item.playback || photo)}" alt=""></div>` : '';
+          return `<div class="search-result"><h4>${esc(item.title || item.name || `Resultado ${index + 1}`)}</h4>${media}${item.downloadUrl ? btnDescargar(item.downloadUrl, `resultado-${index + 1}`) : ''}${esUrl(item.link || item.page) ? ` <a href="${esc(item.link || item.page)}" target="_blank" rel="noopener">Ver original</a>` : ''}</div>`;
+        }).join('') : '';
         result.innerHTML = `
           <div class="res-bar">${okChip}<span class="res-meta">JSON · ${ms} ms</span>${btn}</div>
-          ${playable ? playerHtml(playable) : preview ? `<div class="preview"><img src="${esc(preview)}" alt=""></div>` : ''}
+          ${cards || (playable ? playerHtml(playable) : preview ? `<div class="preview"><img src="${esc(preview)}" alt=""></div>` : '')}
           <pre>${esc(JSON.stringify(json, null, 2))}</pre>`;
         const bajar = result.querySelector('[data-dl-text]');
         if (bajar) bajar.addEventListener('click', () => bajarTexto(JSON.stringify(json, null, 2), nombreJson));

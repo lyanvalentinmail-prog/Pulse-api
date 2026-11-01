@@ -9,12 +9,15 @@
 //
 // Todas aceptan `&limit=` (máx. 30) y responden el sobre de siempre.
 const express = require('express');
+const crypto = require('crypto');
 const S = require('../utils/search');
 const { networkMessage } = require('../utils/http');
-const { sendSuccess, sendError } = require('../utils/response');
+const { sendSuccess, sendError, proxyStream } = require('../utils/response');
+const E = require('../utils/extract');
 
 const router = express.Router();
 const jsonBody = express.json({ limit: '256kb' });
+const itemRef = item => crypto.createHash('sha256').update(String(item.id || item.link || item.page || item.video || item.image || item.preview || item.thumbnail || '')).digest('hex').slice(0, 24);
 
 function params(req) {
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
@@ -42,7 +45,27 @@ async function handle(req, res) {
     const query = S.readQuery(q.q || q.query || q.text);
     const limit = S.readLimit(q.limit, 10, 30);
     const data = await source.run(query, limit);
-    return sendSuccess(res, { endpoint: id, ...data });
+    const items = data.items || [];
+    if (['true', '1'].includes(String(q.direct || '').toLowerCase())) {
+      const index = Number(q.index);
+      if (!Number.isInteger(index) || index < 0 || (!q.ref && index >= items.length)) {
+        return sendError(res, 400, 'Índice de resultado inválido', 'Usá index desde 0 hasta el último resultado');
+      }
+      const item = q.ref ? items.find(candidate => itemRef(candidate) === q.ref) : items[index];
+      if (!item) return sendError(res, 404, 'El resultado ya no está disponible', 'Volvé a buscar para obtener enlaces actualizados');
+      const url = id === 'youtube' ? (await E.youtube(item.link, 'video')).download :
+        (item.video || item.image || item.preview || item.thumbnail || '');
+      if (!url) return sendError(res, 404, 'Este resultado no tiene un archivo disponible');
+      return await proxyStream(req, res, url, { filename: `pulse-${id}-${index}` });
+    }
+    // Sólo se exponen enlaces a medios asociados al resultado, no un proxy de URLs arbitrarias.
+    const enriched = items.map((item, index) => {
+      if (!(id === 'youtube' ? item.link : item.video || item.image || item.preview || item.thumbnail)) return item;
+      const queryString = new URLSearchParams({ q: query, limit: String(limit), index: String(index), ref: itemRef(item), direct: 'true' });
+      const playback = `${req.baseUrl}/${id}?${queryString}`;
+      return { ...item, playback, downloadUrl: `${playback}&download=true` };
+    });
+    return sendSuccess(res, { endpoint: id, ...data, items: enriched });
   } catch (e) {
     const status = Number(e.status) || 502;
     if (e.details) console.warn(`[busquedas/${id}]`, e.message, '→', e.details.slice(-2).join(' | '));

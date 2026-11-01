@@ -1,28 +1,17 @@
 // src/catalog/canvas.js — Ficha de la categoría **CANVAS**.
 //
-// Por ahora la categoría sólo publica los dos endpoints que quedaron tras la
-// limpieza: `brat` (PNG) y `bratvideo` (MP4). Los dos comparten los mismos
-// cuatro parámetros básicos, para que el probador quede corto:
-//
-//   text (requerido) · bg · color · canvas.size   (+ words en el video)
-//
-// El motor sigue aceptando más overrides por URL (`font`, `rotate`, `x`, `y`,
-// `spacing`, `uppercase`, `text.align`…): están documentados en el README pero
-// no se muestran en la web para no llenar el probador.
-//
-// ▸ AGREGAR un canvas (4 pasos):
-//   1) la plantilla (opcional) → assets/templates/
-//   2) el dibujo → src/canvas/generators/<id>.js
-//   3) las medidas → src/canvas/layouts.js
-//   4) la ficha de acá abajo + habilitar el id en src/routes/canvas.js
-//   Guía: CONTRIBUTING.md.
+// Las referencias están organizadas en grupos de brats, carteles, chats y tipografía.
+// Los generadores nuevos viven en src/canvas/generators/ y el catálogo aquí.
 //
 // `group` = la carpeta de Drive a la que pertenece (ver GROUPS).
-const { P, O } = require('./helpers');
+const { P, O, S } = require('./helpers');
 
 // Carpetas de Drive (`CategoriaCanvas/<nombre>`), conservadas en el catálogo.
 const GROUPS = [
-  { id: 'brats', name: 'Brats', desc: 'La familia brat: stickers y videos' }
+  { id: 'brats', name: 'Brats', desc: 'La familia brat: stickers y videos' },
+  { id: 'carteles', name: 'Carteles', desc: 'Personajes con carteles personalizables' },
+  { id: 'chats', name: 'Chats', desc: 'Diseños inspirados en aplicaciones de mensajería' },
+  { id: 'tipografia', name: 'Tipografía', desc: 'Diseños de texto' }
 ];
 
 module.exports = {
@@ -31,6 +20,16 @@ module.exports = {
   desc: 'Memes e imágenes generadas al vuelo',
   groups: GROUPS,
   endpoints: [
+    { id: 'cartelanime1', group: 'carteles', desc: 'Cartel Anime 1: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
+    { id: 'cartelanime2', group: 'carteles', desc: 'Cartel Anime 2: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
+    { id: 'cartelanime3', group: 'carteles', desc: 'Cartel Anime 3: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
+    { id: 'cartelanime4', group: 'carteles', desc: 'Cartel Anime 4: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
+    { id: 'cartelbob', group: 'carteles', desc: 'Cartel Bob: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
+    { id: 'whatsappquote', group: 'chats', desc: 'Mensaje estilo WhatsApp, inspirado en las referencias.', media: 'image', params: [P('text', 'Hola Pulse', 'Mensaje'), O('quote', '', 'Texto adicional')] },
+    { id: 'imessagequote', group: 'chats', desc: 'Mensaje estilo iMessage, inspirado en las referencias.', media: 'image', params: [P('text', 'Hola Pulse', 'Mensaje'), O('quote', '', 'Texto adicional')] },
+    { id: 'imessagetyping', group: 'chats', desc: 'Escribiendo estilo iMessage, inspirado en las referencias.', media: 'image', params: [P('text', 'Hola Pulse', 'Mensaje'), O('reply', '', 'Texto adicional')] },
+    { id: 'perfilchat', group: 'chats', desc: 'Perfil de chat personalizable, sin datos reales.', media: 'image', params: [O('name', 'Pulse', 'Nombre'), O('text', 'Hola, uso Pulse', 'Información'), O('image', '', 'Foto de perfil')] },
+    { id: 'ilove', group: 'tipografia', desc: 'Diseño tipográfico inspirado en i <3.', media: 'image', params: [P('text', 'money', 'Palabra o frase')] },
     { id: 'brat', group: 'brats', desc: 'Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color.', media: 'image', params: [
       P('text', 'Hehe this is brat 💸', 'Texto del sticker'),
       O('bg', 'ffffff', 'Color de fondo hex sin #'),

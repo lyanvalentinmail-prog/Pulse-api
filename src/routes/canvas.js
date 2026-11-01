@@ -1,13 +1,6 @@
 // src/routes/canvas.js — GET /canvas/:id → PNG o MP4.
 //
-// Tras la limpieza sólo quedan dos canvas publicados:
-//
-//   GET /canvas/brat       → PNG   (sticker brat)
-//   GET /canvas/bratvideo  → MP4   (palabras que aparecen una por una)
-//
-// El resto de los generadores se retiró junto con sus endpoints. Para volver a
-// publicar uno: agregá su id a `ALLOWED`, su generador en src/canvas/generators
-// y su ficha en src/catalog/canvas.js.
+// Los generadores publicados y sus grupos se documentan en el catálogo.
 const express = require('express');
 const { generateCanvas, txt } = require('../utils/canvasEngine');
 const { bratVideo } = require('../utils/video');
@@ -16,8 +9,8 @@ const { findEndpoint } = require('../catalog');
 
 const router = express.Router();
 
-// Únicos canvas habilitados.
-const ALLOWED = new Set(['brat', 'bratvideo']);
+// Canvas habilitados; también deben figurar en el catálogo.
+const ALLOWED = new Set(['brat', 'bratvideo', 'cartelanime1', 'cartelanime2', 'cartelanime3', 'cartelanime4', 'cartelbob', 'whatsappquote', 'imessagequote', 'imessagetyping', 'perfilchat', 'ilove']);
 
 // Las imágenes de la galería llegan en el cuerpo (JSON) para no meter un
 // `data:` enorme en la URL: POST /canvas/brat  { "text": "..." }

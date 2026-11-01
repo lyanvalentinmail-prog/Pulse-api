@@ -124,6 +124,12 @@ async function proxyStream(req, res, upstreamUrl, { filename = 'media', headers 
     up.body?.cancel().catch(() => {});
     throw new Error('La fuente no devolvió un archivo multimedia válido');
   }
+  // Cuando el llamador no conoce la extensión, usar el MIME real del archivo.
+  if (!/\.[a-z0-9]{2,5}$/i.test(filename)) {
+    const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif',
+      'video/mp4': 'mp4', 'video/webm': 'webm', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg' }[type];
+    if (ext) filename += `.${ext}`;
+  }
   res.status(up.status === 206 ? 206 : 200);
   res.setHeader('Content-Type', type);
   res.setHeader('X-Content-Type-Options', 'nosniff');

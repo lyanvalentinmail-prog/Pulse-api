@@ -8,7 +8,7 @@
 //   · stickerly     → api.sticker.ly (stickers de WhatsApp)
 //
 // Los parsers (parse*) son funciones puras para poder probarlos sin red.
-const { fetchJson, fetchText, UA_DESKTOP } = require('./http');
+const { fetchJson, fetchText, firstFast, UA_DESKTOP } = require('./http');
 const { absolutize, unescape, metaContent } = require('./extract');
 
 const TIMEOUT = 15000;
@@ -153,24 +153,23 @@ function parseInvidiousSearch(json, limit) {
 }
 
 async function youtube(query, limit) {
-  const errors = [];
-  for (const base of PIPED) {
-    try {
-      const json = await fetchJson(`${base}/search?q=${encodeURIComponent(query)}&filter=videos`, { timeoutMs: TIMEOUT });
-      const items = parsePipedSearch(json, limit);
-      if (items.length) return { query, source: `piped:${new URL(base).hostname}`, total: items.length, items };
-    } catch (e) { errors.push(`${base}: ${e.message}`); }
+  const piped = PIPED.map(base => [base, async () => {
+    const json = await fetchJson(`${base}/search?q=${encodeURIComponent(query)}&filter=videos`, { timeoutMs: TIMEOUT });
+    const items = parsePipedSearch(json, limit);
+    return items.length ? { query, source: `piped:${new URL(base).hostname}`, total: items.length, items } : null;
+  }]);
+  const invidious = INVIDIOUS.map(base => [base, async () => {
+    const json = await fetchJson(`${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`, { timeoutMs: TIMEOUT });
+    const items = parseInvidiousSearch(json, limit);
+    return items.length ? { query, source: `invidious:${new URL(base).hostname}`, total: items.length, items } : null;
+  }]);
+  try {
+    return (await firstFast([...piped, ...invidious], { timeoutMs: TIMEOUT + 500 })).value;
+  } catch (e) {
+    const err = noResults('YouTube', 'Las instancias públicas de Piped/Invidious a veces se caen: reintentá en un rato');
+    err.details = e.details;
+    throw err;
   }
-  for (const base of INVIDIOUS) {
-    try {
-      const json = await fetchJson(`${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`, { timeoutMs: TIMEOUT });
-      const items = parseInvidiousSearch(json, limit);
-      if (items.length) return { query, source: `invidious:${new URL(base).hostname}`, total: items.length, items };
-    } catch (e) { errors.push(`${base}: ${e.message}`); }
-  }
-  const err = noResults('YouTube', 'Las instancias públicas de Piped/Invidious a veces se caen: reintentá en un rato');
-  err.details = errors;
-  throw err;
 }
 
 // ============================================================= Wallpapers

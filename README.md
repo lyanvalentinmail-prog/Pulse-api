@@ -4,8 +4,8 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **18 endpoints** publicados:
-> Canvas (2), IA (2), Descargas (8) y Búsquedas (6). Anime, Imágenes,
+> **Estado actual:** 9 routers montados y **28 endpoints** publicados:
+> Canvas (12), IA (2), Descargas (8) y Búsquedas (6). Anime, Imágenes,
 > Herramientas, Juegos y Audios siguen vacías, listas para llenar.
 
 ```
@@ -156,7 +156,12 @@ curl "http://localhost:3000/descargas/pinterest?url=https://www.pinterest.com/pi
 ```
 
 Fuentes: tikwm (TikTok), HTML público (Pinterest/Instagram/Facebook), oEmbed +
-embed (Spotify), **cobalt** o instancias Piped (YouTube). Para YouTube conviene
+embed (Spotify), **cobalt** o instancias Piped (YouTube). Las fuentes pueden
+estar caídas, requerir sesión o
+bloquear servidores; el acceso a contenido privado no está garantizado. Spotify
+sólo ofrece el preview cuando está disponible. `direct=true` reproduce el
+archivo; agregá `download=true` para solicitar una descarga. Si Piped entrega
+audio no-MP3, se convierte con ffmpeg antes de devolverlo. Para YouTube conviene
 tener tu propia instancia:
 
 ```bash
@@ -174,23 +179,38 @@ COBALT_API_URL=https://cobalt.tu-dominio.com
 | `GET /busquedas/wallpapersv2` | motionbgs.com | fondos en movimiento |
 | `GET /busquedas/stickerly` | api.sticker.ly | stickers de WhatsApp |
 
-Todas usan `?q=` (obligatorio) y `&limit=` (1-30):
+Todas usan `?q=` (obligatorio) y `&limit=` (1-30). Cada resultado con medio
+incluye `playback` y `downloadUrl`: el segundo solicita el archivo como adjunto.
+El enlace vuelve a consultar la fuente y comprueba la identidad del resultado;
+si deja de aparecer, devuelve 404 en vez de descargar otro. En YouTube la
+reproducción también depende de cobalt o Piped. Algunos resultados sólo ofrecen
+miniaturas o previews, no un archivo original.
 
 ```bash
 curl "http://localhost:3000/busquedas/wallpapers?q=naruto&limit=5"
 curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
 ```
 
-## 🎨 Canvas — 2
+## 🎨 Canvas — 12
 
 | Endpoint | Qué hace | Media |
 |---|---|---|
 | `GET /canvas/brat` | Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color. | `image/png` |
 | `GET /canvas/bratvideo` | El mismo diseño en video MP4: las palabras aparecen una por una. | `video/mp4` |
+| `GET /canvas/cartelanime1` … `cartelanime4` | Personajes con carteles personalizables. | `image/png` |
+| `GET /canvas/cartelbob` | Cartel de Bob Esponja. | `image/png` |
+| `GET /canvas/whatsappquote`, `imessagequote`, `imessagetyping` | Diseños de mensajes de chat. | `image/png` |
+| `GET /canvas/perfilchat` | Perfil de chat con nombre, texto y foto opcional. | `image/png` |
+| `GET /canvas/ilove` | Diseño tipográfico inspirado en i <3. | `image/png` |
+
+Los carteles aceptan `text` o `image` (usar `mode=image` para la imagen);
+los chats admiten `text` y algunos `quote` o `reply`. Los diseños de chat se
+recrearon sin incluir datos personales de las capturas. Todos aceptan
+`download=true` para descargar el PNG.
 
 ### Parámetros
 
-Sólo cuatro (cinco en el video), para que el probador quede corto:
+Parámetros principales de brat y bratvideo:
 
 | Parámetro | Ejemplo | Qué hace |
 |---|---|---|
@@ -265,7 +285,7 @@ src/
   catalog/             fichas de cada categoría (desc + params) → web, /docs
     index.js           junta los 9 archivos y expone totals()/findEndpoint()
     helpers.js         P(), O(), S(), AV, AV2, textStyle(), photoStyle()
-    canvas.js          ← los 2 endpoints publicados
+    canvas.js          ← rutas de canvas publicados
     anime.js ia.js descargas.js busquedas.js imagenes.js herramientas.js juegos.js audios.js
   routes/              un router por categoría (los 8 vacíos son de 3 líneas)
     pages.js           /home, /information, /docs, página de cada categoría
@@ -273,7 +293,7 @@ src/
   canvas/              motor de dibujo
     core.js parts.js   helpers de render
     layouts.js         medidas de brat (parte por parte)
-    generators/        un archivo por canvas (hoy sólo brat.js)
+    generators/        un archivo por canvas
   utils/
     brat.js            diseño brat compartido por PNG y video
     video.js           bratvideo (ffmpeg)
