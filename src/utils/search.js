@@ -8,7 +8,8 @@
 //   · stickerly     → api.sticker.ly (stickers de WhatsApp)
 //
 // Los parsers (parse*) son funciones puras para poder probarlos sin red.
-const { fetchJson, fetchText, firstFast, UA_DESKTOP } = require('./http');
+const { fetchJson, fetchText, fetchWithTimeout, postJson, firstFast, UA_DESKTOP } = require('./http');
+const { randomBytes } = require('crypto');
 const { absolutize, unescape, metaContent } = require('./extract');
 
 const TIMEOUT = 15000;
@@ -88,12 +89,49 @@ function parsePinterestSearch(json, limit) {
     });
 }
 
-async function pinterest(query, limit) {
-  const data = JSON.stringify({ options: { query, scope: 'pins', page_size: Math.max(limit, 25) }, context: {} });
+// La sesión anónima evita que BaseSearchResource rechace peticiones sin CSRF.
+let pinterestSession;
+let pinterestSessionPromise;
+async function getPinterestSession() {
+  if (pinterestSession && pinterestSession.expires > Date.now()) return pinterestSession;
+  if (pinterestSessionPromise) return pinterestSessionPromise;
+  pinterestSessionPromise = (async () => {
+    const res = await fetchWithTimeout('https://www.pinterest.com/', {
+      headers: { 'User-Agent': UA_DESKTOP, 'Accept-Language': 'en-US,en;q=0.9' }, redirect: 'error'
+    }, 8000);
+    if (!res.ok) { res.body?.cancel().catch(() => {}); throw new Error(`Pinterest: HTTP ${res.status} al iniciar sesión anónima`); }
+    const cookies = res.headers.getSetCookie ? res.headers.getSetCookie() : [];
+    res.body?.cancel().catch(() => {});
+    const pairs = cookies.map(c => c.split(';')[0]).filter(c => /^(?:csrftoken|_pinterest_sess)=/i.test(c));
+    const csrf = pairs.find(c => /^csrftoken=/i.test(c))?.slice('csrftoken='.length) || '';
+    pinterestSession = { cookie: pairs.join('; '), csrf, expires: Date.now() + 30 * 60 * 1000 };
+    return pinterestSession;
+  })();
+  try { return await pinterestSessionPromise; } finally { pinterestSessionPromise = null; }
+}
+
+async function pinterestSearch(query, limit) {
+  const sourceUrl = `/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
+  const data = JSON.stringify({ options: { query, scope: 'pins', page_size: Math.max(limit, 25), source_url: sourceUrl, rs: 'typed', auto_correction_disabled: false }, context: {} });
   const url = 'https://www.pinterest.com/resource/BaseSearchResource/get/'
-    + `?source_url=${encodeURIComponent(`/search/pins/?q=${query}`)}&data=${encodeURIComponent(data)}`;
-  const json = await fetchJson(url, { timeoutMs: TIMEOUT, headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
-  const items = parsePinterestSearch(json, limit);
+    + `?source_url=${encodeURIComponent(sourceUrl)}&data=${encodeURIComponent(data)}`;
+  let json;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const session = await getPinterestSession();
+    try {
+      json = await fetchJson(url, { timeoutMs: TIMEOUT, redirect: 'error', headers: {
+        Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest',
+        'X-Pinterest-PWS-Handler': 'www/search/pins.js', 'X-CSRFToken': session.csrf,
+        Referer: `https://www.pinterest.com${sourceUrl}`, ...(session.cookie ? { Cookie: session.cookie } : {})
+      } });
+      break;
+    } catch (e) {
+      if (attempt || ![401, 403].includes(e.status)) throw e;
+      pinterestSession = null;
+    }
+  }
+  if (json?.resource_response?.status === 'fail') throw new Error('Pinterest rechazó la búsqueda');
+  const items = parsePinterestSearch(json, limit).filter(item => item.image || item.video);
   if (!items.length) throw noResults('Pinterest');
   return { query, source: 'pinterest', total: items.length, items };
 }
@@ -104,18 +142,19 @@ function parseTikTokSearch(json, limit, base = 'https://www.tikwm.com') {
   return (Array.isArray(videos) ? videos : []).filter(v => v && (v.play || v.hdplay || v.cover || v.origin_cover)).slice(0, limit).map(v => ({
     id: v.video_id || v.id || '',
     title: unescape(v.title || ''),
-    author: v.author ? `@${v.author.unique_id}` : '',
+    author: v.author?.unique_id ? `@${v.author.unique_id}` : '',
     cover: absolutize(v.cover || v.origin_cover, base),
     video: absolutize(v.play || v.hdplay, base),
     duration: Number(v.duration) || null,
     plays: Number(v.play_count) || null,
-    link: v.video_id ? `https://www.tiktok.com/@${v.author ? v.author.unique_id : '_'}/video/${v.video_id}` : ''
+    link: (v.video_id || v.id) ? `https://www.tiktok.com/@${v.author?.unique_id || '_'}/video/${v.video_id || v.id}` : ''
   }));
 }
 
-async function tiktok(query, limit) {
+async function tiktokSearch(query, limit) {
   const url = `https://www.tikwm.com/api/feed/search?keywords=${encodeURIComponent(query)}&count=${Math.max(limit, 12)}&cursor=0&hd=1`;
   const json = await fetchJson(url, { timeoutMs: TIMEOUT });
+  if (json?.code !== undefined && Number(json.code) !== 0) throw new Error('TikWM rechazó la búsqueda');
   const items = parseTikTokSearch(json, limit);
   if (!items.length) throw noResults('TikTok');
   return { query, source: 'tikwm', total: items.length, items };
@@ -243,26 +282,72 @@ async function wallpapersV2(query, limit) {
 
 // ============================================================== Stickerly
 function parseStickerly(json, limit) {
-  const list = findArray(json, ['resourceUrl', 'thumbnailUrl', 'stickerId', 'sticker_id']) || [];
-  return list.slice(0, limit).map(s => ({
-    id: s.stickerId || s.sticker_id || s.id || '',
-    name: unescape(s.name || s.title || ''),
-    pack: s.packName || s.pack_name || (s.pack && s.pack.name) || '',
-    author: s.authorName || s.creatorName || (s.pack && s.pack.ownerName) || '',
-    image: absolutize(s.resourceUrl || s.stickerUrl || s.url || s.thumbnailUrl),
-    thumbnail: absolutize(s.thumbnailUrl || s.thumbnail || s.resourceUrl),
-    animated: !!(s.animated || /\.gif|\.webp|\.json/i.test(String(s.resourceUrl || ''))),
-    link: (s.stickerId || s.sticker_id) ? `https://sticker.ly/sticker/${s.stickerId || s.sticker_id}` : ''
-  }));
+  const items = [];
+  const seen = new Set();
+  const add = (s, pack = {}) => {
+    if (!s || typeof s !== 'object') return;
+    const prefix = pack.resourceUrlPrefix || s.resourceUrlPrefix || '';
+    const file = typeof s === 'string' ? s : s.fileName || s.filename || '';
+    const url = absolutize(s.resourceUrl || s.stickerUrl || s.imageUrl || s.url || (file && prefix ? `${prefix.replace(/\/?$/, '/')}${file}` : '') || s.thumbnailUrl || s.thumbnail);
+    if (!/^https?:\/\//i.test(url) || seen.has(url)) return;
+    seen.add(url);
+    const packId = String(pack.packId || s.packId || '');
+    const name = unescape(s.name || s.title || pack.name || pack.packName || '');
+    items.push({
+      id: String(s.stickerId || s.sticker_id || s.sid || (packId ? `${packId}:${file || url}` : s.id || url)),
+      name, pack: unescape(s.packName || pack.name || pack.packName || ''),
+      author: s.authorName || pack.authorName || pack.user?.userName || '',
+      image: url, thumbnail: absolutize(s.thumbnailUrl || s.thumbnail || url),
+      animated: !!(s.isAnimated ?? s.animated ?? pack.isAnimated),
+      link: packId ? `https://sticker.ly/s/${encodeURIComponent(packId)}` : s.stickerId || s.sticker_id ? `https://sticker.ly/sticker/${encodeURIComponent(s.stickerId || s.sticker_id)}` : ''
+    });
+  };
+  const packs = json?.result?.stickerPacks || json?.result?.packs;
+  if (Array.isArray(packs)) {
+    for (const pack of packs) {
+      if (!pack || typeof pack !== 'object') continue;
+      const stickers = pack.stickers || pack.stickerList || pack.resourceFiles;
+      if (Array.isArray(stickers)) for (const sticker of stickers) add(typeof sticker === 'string' ? { fileName: sticker } : sticker, pack);
+      if (!Array.isArray(stickers) || !stickers.length) add(pack, pack);
+      if (items.length >= limit) break;
+    }
+  } else {
+    const list = findArray(json, ['resourceUrl', 'thumbnailUrl', 'stickerUrl', 'stickerId', 'sticker_id', 'sid']) || [];
+    for (const sticker of list) add(sticker);
+  }
+  return items.slice(0, limit);
 }
 
-async function stickerly(query, limit) {
-  const url = `https://api.sticker.ly/v4/sticker/search?keyword=${encodeURIComponent(query)}&pageSize=${Math.min(50, Math.max(limit, 20))}&page=1&sortBy=ALL&requireAnimation=true`;
-  const json = await fetchJson(url, { timeoutMs: TIMEOUT, headers: { Accept: 'application/json', 'User-Agent': 'okhttp/4.9.0' } });
+async function stickerlySearch(query, limit) {
+  // Sticker.ly expone la búsqueda de paquetes mediante su API móvil no oficial.
+  const url = 'http://api.sticker.ly/v3.1/stickerPack/search?withAnimation=true';
+  const json = await postJson(url, { keyword: query, cursor: 0 }, { timeoutMs: TIMEOUT, redirect: 'error', headers: {
+    'User-Agent': 'androidapp.stickerly/1.17.3 (Redmi 7; U; Android 29; es-ES; es;)',
+    Accept: 'application/json', 'x-duid': randomBytes(8).toString('hex')
+  } });
+  if (json?.error) throw new Error('Sticker.ly rechazó la búsqueda');
   const items = parseStickerly(json, limit);
   if (!items.length) throw noResults('Stickerly');
   return { query, source: 'api.sticker.ly', total: items.length, items };
 }
+
+// La reproducción vuelve a consultar la búsqueda. Reutilizar resultados recientes
+// evita una petición por miniatura y la limitación de frecuencia de TikWM.
+function cacheSearch(fn) {
+  const cache = new Map();
+  return async (query, limit) => {
+    const key = JSON.stringify([query, limit]);
+    const current = cache.get(key);
+    if (current && current.expires > Date.now()) return current.value;
+    const value = Promise.resolve().then(() => fn(query, limit));
+    cache.set(key, { value, expires: Date.now() + 60000 });
+    while (cache.size > 100) cache.delete(cache.keys().next().value);
+    try { return await value; } catch (e) { if (cache.get(key)?.value === value) cache.delete(key); throw e; }
+  };
+}
+const pinterest = cacheSearch(pinterestSearch);
+const tiktok = cacheSearch(tiktokSearch);
+const stickerly = cacheSearch(stickerlySearch);
 
 module.exports = {
   pinterest, tiktok, youtube, wallpapers, wallpapersV2, stickerly,

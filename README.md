@@ -196,10 +196,15 @@ y se procesan como máximo 60 segundos. Los servicios remotos pueden no estar di
 | `GET /busquedas/youtube` | Piped / Invidious | título, canal, duración, vistas |
 | `GET /busquedas/wallpapers` | besthdwallpapers.org | fondos en tamaño original |
 | `GET /busquedas/wallpapersv2` | motionbgs.com | fondos en movimiento |
-| `GET /busquedas/stickerly` | api.sticker.ly | stickers de WhatsApp |
+| `GET /busquedas/stickerly` | api.sticker.ly | stickers y vistas previas de packs públicos |
 
 Todas usan `?q=` (obligatorio) y `&limit=` (1-30), con GET o POST JSON.
-También están disponibles bajo `/searcher/<endpoint>`. Cada resultado con medio
+También están disponibles bajo `/searcher/<endpoint>`. Pinterest usa una sesión
+anónima; TikTok usa TikWM y Sticker.ly consulta la API móvil de búsqueda de packs.
+La API móvil de Sticker.ly utilizada aquí emplea HTTP sin cifrar, por lo que la consulta
+viaja sin cifrar. Las tres fuentes son externas y pueden bloquear o limitar peticiones.
+Los resultados se conservan hasta un minuto por instancia para evitar repetir
+la búsqueda al reproducir o descargar, pero pueden cambiar o desaparecer. Cada resultado con medio
 incluye `playback` y `downloadUrl`: el segundo solicita el archivo como adjunto.
 El enlace vuelve a consultar la fuente y comprueba la identidad del resultado;
 si deja de aparecer, devuelve 404 en vez de descargar otro. En YouTube la
