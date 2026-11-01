@@ -37,6 +37,7 @@ async function main() {
       const range = new Headers(opts.headers).has('range');
       return new Response(Buffer.from('0123456789'), { status: range ? 206 : 200, headers: { 'content-type': u.includes('.mp4') ? 'video/mp4' : u.includes('.mp3') ? 'audio/mpeg' : 'image/jpeg', ...(range ? { 'content-range': 'bytes 0-9/10' } : {}) } });
     }
+    if (u === 'https://www.pinterest.com/') return new Response('', { headers: { 'set-cookie': 'csrftoken=test-csrf; Path=/' } });
     if (u.includes('besthdwallpapers.org')) return new Response('<a href="/cat"><img src="/blank.png" data-src="https://media.example/cat.jpg?v=1" alt="cat"></a>');
     if (u.includes('motionbgs.com')) return new Response('<a href="/cat"><img src="https://media.example/cat.jpg"></a>');
     const key = Object.keys(fixtures).find(k => u.includes(k));
@@ -78,7 +79,7 @@ async function main() {
     const mockedFetch = global.fetch;
     global.fetch = async () => { throw new Error('fetch failed'); };
     for (const id of ['pinterest', 'tiktok', 'youtube', 'wallpapers', 'wallpapersv2', 'stickerly']) {
-      const failure = await request(port, `/busquedas/${id}?q=cat`);
+      const failure = await request(port, `/busquedas/${id}?q=error-test`);
       assert.ok(failure.status >= 400, id);
       assert.equal(JSON.parse(failure.body).status, false, id);
     }

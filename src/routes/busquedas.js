@@ -56,7 +56,9 @@ async function handle(req, res) {
       const url = id === 'youtube' ? (await E.youtube(item.link, 'video')).download :
         (item.video || item.image || item.preview || item.thumbnail || item.cover || '');
       if (!url) return sendError(res, 404, 'Este resultado no tiene un archivo disponible');
-      return await proxyStream(req, res, url, { filename: `pulse-${id}-${index}` });
+      const headers = id === 'pinterest' ? { Referer: 'https://www.pinterest.com/' }
+        : id === 'tiktok' ? { Referer: /(^|\.)tikwm\.com$/i.test(new URL(url).hostname) ? 'https://www.tikwm.com/' : 'https://www.tiktok.com/' } : {};
+      return await proxyStream(req, res, url, { filename: `pulse-${id}-${index}`, headers });
     }
     // Sólo se exponen enlaces a medios asociados al resultado, no un proxy de URLs arbitrarias.
     const enriched = items.map((item, index) => {

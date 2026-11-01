@@ -20,6 +20,6 @@ module.exports = {
     { id: 'youtube', desc: 'Busca videos de YouTube: título, canal, duración, vistas y miniatura.', media: 'video', params: params('lofi hip hop', 'Qué buscar en YouTube') },
     { id: 'wallpapers', desc: 'Fondos de pantalla de BestHDWallpapers (imagen original + página).', media: 'image', params: params('naruto', 'Qué fondo buscar (mejor en inglés)', 'Cuántos fondos devolver (1 - 30)') },
     { id: 'wallpapersv2', desc: 'Fondos de pantalla en movimiento de MotionBGs (video o preview).', media: 'video', params: params('rain', 'Qué fondo animado buscar (mejor en inglés)', 'Cuántos fondos devolver (1 - 30)') },
-    { id: 'stickerly', desc: 'Stickers de Stickerly por nombre de pack o personaje.', media: 'image', params: params('gatitos', 'Qué sticker buscar') }
+    { id: 'stickerly', desc: 'Stickers y vistas previas de packs públicos de Sticker.ly por nombre o personaje.', media: 'image', params: params('gatitos', 'Qué sticker buscar') }
   ]
 };
