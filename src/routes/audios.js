@@ -27,65 +27,65 @@ const { sendError } = require('../utils/response');
 // Helper para simular el procesamiento (en producción iría a los servicios reales)
 const processAudio = (type, params) => {
   // Simulación de respuesta JSON genérica para efectos de audio
-  // Se requiere el parámetro 'audio' (URL)
+  // Se requiere el parámetro 'url' (archivo de audio)
   return {
     creator: config.creator,
     status: true,
     result: {
       type,
       params,
-      message: `Efecto ${type} aplicado con éxito al audio`,
+      message: `Efecto ${type} aplicado con éxito al archivo de audio`,
       audioUrl: `https://example.com/audio/${type}.mp3` // Placeholder
     }
   };
 };
 
 router.get('/robot', (req, res) => {
-  const { audio, pitch = '1.0' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('robot', { audio, pitch }));
+  const { url, pitch = '1.0' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('robot', { url, pitch }));
 });
 
 router.get('/reverse', (req, res) => {
-  const { audio, speed = '1.0' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('reverse', { audio, speed }));
+  const { url, speed = '1.0' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('reverse', { url, speed }));
 });
 
 router.get('/demon', (req, res) => {
-  const { audio, intensity = '1.0' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('demon', { audio, intensity }));
+  const { url, intensity = '1.0' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('demon', { url, intensity }));
 });
 
 router.get('/bass', (req, res) => {
-  const { audio, gain = '1.0' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('bass', { audio, gain }));
+  const { url, gain = '1.0' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('bass', { url, gain }));
 });
 
 router.get('/underwater', (req, res) => {
-  const { audio, depth = '1.0' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('underwater', { audio, depth }));
+  const { url, depth = '1.0' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('underwater', { url, depth }));
 });
 
 router.get('/echo', (req, res) => {
-  const { audio, delay = '0.5', decay = '0.5' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('echo', { audio, delay, decay }));
+  const { url, delay = '0.5', decay = '0.5' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('echo', { url, delay, decay }));
 });
 
 router.get('/chipmunk', (req, res) => {
-  const { audio, pitch = '2.0' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('chipmunk', { audio, pitch }));
+  const { url, pitch = '2.0' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('chipmunk', { url, pitch }));
 });
 
 router.get('/distortion', (req, res) => {
-  const { audio, level = '0.5' } = req.query;
-  if (!audio) return sendError(res, 400, 'Falta el parámetro audio (URL del archivo)');
-  return res.json(processAudio('distortion', { audio, level }));
+  const { url, level = '0.5' } = req.query;
+  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
+  return res.json(processAudio('distortion', { url, level }));
 });
 
 module.exports = router;
