@@ -56,7 +56,11 @@ async function gemini(req, res, q) {
   if (prompt.length > 8000) return sendError(res, 400, 'El prompt es demasiado largo (máx. 8000 caracteres)');
 
   const model = MODELS.includes(String(q.model)) ? String(q.model) : config.geminiModel;
-  const temperature = Math.min(2, Math.max(0, Number(q.temperature))) || 0.7;
+  const requestedTemperature = q.temperature === undefined || q.temperature === '' ? 0.7 : Number(q.temperature);
+  if (!Number.isFinite(requestedTemperature) || requestedTemperature < 0 || requestedTemperature > 2) {
+    return sendError(res, 400, 'temperature debe estar entre 0 y 2');
+  }
+  const temperature = requestedTemperature;
 
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -79,14 +83,17 @@ async function gemini(req, res, q) {
       networkMessage(e) || 'Revisá la conexión del servidor con generativelanguage.googleapis.com');
   }
 
-  const raw = await upstream.text();
+  let raw;
+  try { raw = await upstream.text(); } catch (e) {
+    return sendError(res, /abort|timeout/i.test(`${e.name} ${e.message}`) ? 504 : 502, 'No se pudo leer la respuesta de Gemini');
+  }
   let json = null;
   try { json = JSON.parse(raw); } catch (_) { /* respuesta no-JSON */ }
 
   if (!upstream.ok) {
     const apiMessage = json && json.error && json.error.message ? json.error.message : `HTTP ${upstream.status}`;
     // Nunca reenviar la clave: sólo el mensaje de Google.
-    return sendError(res, upstream.status === 429 ? 429 : 502, `Gemini: ${apiMessage}`,
+    return sendError(res, upstream.status === 429 ? 429 : 502, `Gemini: ${String(apiMessage).split(config.geminiKey).join('[clave oculta]')}`,
       upstream.status === 400 || upstream.status === 403 ? 'Revisá que la clave sea válida y que la API esté habilitada' : undefined);
   }
 

@@ -4,9 +4,9 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **28 endpoints** publicados:
-> Canvas (12), IA (2), Descargas (8) y Búsquedas (6). Anime, Imágenes,
-> Herramientas, Juegos y Audios siguen vacías, listas para llenar.
+> **Estado actual:** 9 routers montados y **36 endpoints** publicados:
+> Canvas (12), IA (2), Descargas (8), Búsquedas (6) y Audios (8). Anime, Imágenes,
+> Herramientas y Juegos siguen vacías, listas para llenar.
 
 ```
 GET /home                      → dashboard con las carpetas
@@ -39,14 +39,14 @@ Todos los endpoints JSON responden con el mismo sobre:
 | Carpeta | Ruta | Endpoints hoy | Para qué |
 |---|---|---|---|
 | `anime` | `/anime` | — | Waifus, personajes y búsqueda de anime |
-| `canvas` | `/canvas` | **2** | Memes e imágenes generadas al vuelo |
+| `canvas` | `/canvas` | **12** | Memes e imágenes generadas al vuelo |
 | `ia` | `/ia` | **2** | Modelos y utilidades de inteligencia artificial |
 | `descargas` | `/descargas` | **8** | Videos y música de redes sociales |
 | `busquedas` | `/busquedas` | **6** | Buscadores: Pinterest, TikTok, YouTube, fondos |
 | `imagenes` | `/imagenes` | — | Imágenes, stickers y fondos |
 | `herramientas` | `/herramientas` | — | Utilidades: QR, hash, base64, texto |
 | `juegos` | `/juegos` | — | Juegos rápidos por chat |
-| `audios` | `/audios` | — | Efectos de sonido, TTS y letras |
+| `audios` | `/audios` | **8** | Efectos de audio |
 
 Rutas viejas que siguen funcionando como redirección:
 `/tools` → `/herramientas`, `/downloader` y `/download` → `/descargas`,
@@ -167,6 +167,20 @@ tener tu propia instancia:
 ```bash
 COBALT_API_URL=https://cobalt.tu-dominio.com
 ```
+
+## 🎵 Audios — 8
+
+`GET|POST /audios/{robot,reverse,demon,bass,underwater,echo,chipmunk,distortion}`
+aplica el efecto a un archivo de audio accesible mediante `url`. Devuelve MP3
+(`audio/mpeg`) directamente, con soporte de `Range` y `download=true`. Los
+parámetros y sus rangos se detallan en `/docs`.
+
+```bash
+curl -o efecto.mp3 "http://localhost:3000/audios/echo?url=https%3A%2F%2Fexample.com%2Faudio.mp3&delay=0.5&decay=0.5"
+```
+
+Sólo se aceptan URLs públicas; el archivo de entrada tiene un límite de 10 MB
+y se procesan como máximo 60 segundos. Los servicios remotos pueden no estar disponibles.
 
 ## 🔎 Busquedas — 6
 
@@ -298,7 +312,7 @@ src/
     helpers.js         P(), O(), S(), AV, AV2, textStyle(), photoStyle()
     canvas.js          ← rutas de canvas publicados
     anime.js ia.js descargas.js busquedas.js imagenes.js herramientas.js juegos.js audios.js
-  routes/              un router por categoría (los 8 vacíos son de 3 líneas)
+  routes/              un router por categoría
     pages.js           /home, /information, /docs, página de cada categoría
     canvas.js          GET/POST /canvas/:id
   canvas/              motor de dibujo

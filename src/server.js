@@ -8,9 +8,6 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', true);
 
-// Estáticos (CSS/JS/imágenes de ejemplo)
-app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
-
 // CORS abierto: la API es pública y sin token 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,12 +18,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Estáticos (CSS/JS/imágenes de ejemplo)
+app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
+
 // Páginas (/, /home, una por categoría, /information y /docs)
 // Deben ir ANTES de los routers API para que GET /canvas sirva la web y /canvas/:id el PNG.
 app.use(require('./routes/pages'));
 
-// API — nueve categorías. Hoy sólo CANVAS publica endpoints (brat y bratvideo);
-// el resto son routers vacíos listos para llenar (ver src/routes/<categoría>.js).
+// API — nueve categorías (ver src/routes/<categoría>.js).
 app.use(require('./utils/requestContext').requestContext);
 app.use('/anime', require('./routes/anime'));
 app.use('/canvas', require('./routes/canvas'));

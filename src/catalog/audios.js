@@ -1,26 +1,12 @@
-// src/catalog/audios.js — Ficha de la categoría **AUDIOS**.
-//
-// El router /audios (src/routes/audios.js) está montado pero todavía no publica
-// endpoints: `endpoints: []`. La web, /docs y el probador salen vacíos hasta que
-// agregues la primera ficha.
-//
-// ▸ AGREGAR un endpoint (2 pasos):
-//   1) la ruta que responde → src/routes/audios.js
-//   2) la ficha (desc + params) → acá, copiando una entrada de src/catalog/canvas.js
-//
-// Formato de una entrada:
-//
-//   {\n//     id: 'miEndpoint',          // = la ruta: GET /audios/miEndpoint (minúsculas, sin espacios)\\\\n//     desc: 'Qué hace',          // se ve en la web, en /docs y en el README\\\\n//     media: 'image',            // opcional: 'image' | 'video' | 'audio' | 'json'\\\\n//     params: [\\\\n//       P('text', 'hola', 'Texto principal'),   // requerido\\\\n//       O('size', '1', 'Escala (0.5 - 2)')      // opcional\\\\n//     ]\\\\n//   }\\\\n//
-// Ayudas (src/catalog/helpers.js): P, O, S, AV, AV2, textStyle(), photoStyle().
-const { P, O, S, AV, AV2, textStyle, photoStyle } = require('./helpers');
+// src/catalog/audios.js — Efectos de audio. Devuelven MP3; ?download=true lo descarga.
+const { P, O } = require('./helpers');
 
 const url = (example, desc) => P('url', example, desc);
-const direct = () => O('direct', 'false', 'true = devuelve el archivo (MP4/MP3/JPG) en lugar del JSON');
 
 module.exports = {
   id: 'audios',
   name: 'AUDIOS',
-  desc: 'Efectos de sonido, TTS y letras',
+  desc: 'Efectos de audio en MP3 (máximo 10 MB y 60 segundos)',
   endpoints: [
     {
       id: 'robot',
@@ -33,11 +19,11 @@ module.exports = {
     },
     {
       id: 'reverse',
-      desc: 'Reproduce el audio o texto al revés.',
+      desc: 'Reproduce el audio al revés.',
       media: 'audio',
       params: [
         url('https://example.com/sample.mp3', 'URL del archivo de audio (requerido)'),
-        O('speed', '1.0', 'Velocidad de reproducción')
+        O('speed', '1.0', 'Velocidad de reproducción (0.5 - 2.0)')
       ]
     },
     {
