@@ -204,8 +204,15 @@ curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
 | `GET /canvas/ilove` | Diseño tipográfico inspirado en i <3. | `image/png` |
 
 Los carteles aceptan `text` o `image` (usar `mode=image` para la imagen);
-los chats admiten `text` y algunos `quote` o `reply`. Los diseños de chat se
-recrearon sin incluir datos personales de las capturas. Todos aceptan
+los chats admiten `text` y algunos `quote` o `reply`. `whatsappquote` acepta
+`variant=simple|cita`, `author`, `quote` y `time`; si se envía `quote` se usa
+la variante con cita. `imessagetyping` permite cambiar `reply`, `time` y
+`suggestion`. `perfilchat` acepta `image`, `name`, `text`, `username`, `phone`
+y `link`. Las plantillas de chat conservan la composición de las referencias,
+pero se eliminaron los datos personales originales y se sustituyen por los
+parámetros proporcionados. En los chats, los textos se ajustan al espacio; si
+no caben, la API responde con un error 400 en vez de cortarlos. El texto
+personalizado de `ilove` aproxima la deformación de la referencia original. Todos aceptan
 `download=true` para descargar el PNG.
 
 ### Parámetros

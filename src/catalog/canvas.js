@@ -20,16 +20,28 @@ module.exports = {
   desc: 'Memes e imágenes generadas al vuelo',
   groups: GROUPS,
   endpoints: [
-    { id: 'cartelanime1', group: 'carteles', desc: 'Cartel Anime 1: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
-    { id: 'cartelanime2', group: 'carteles', desc: 'Cartel Anime 2: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
-    { id: 'cartelanime3', group: 'carteles', desc: 'Cartel Anime 3: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
-    { id: 'cartelanime4', group: 'carteles', desc: 'Cartel Anime 4: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
-    { id: 'cartelbob', group: 'carteles', desc: 'Cartel Bob: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image'])] },
-    { id: 'whatsappquote', group: 'chats', desc: 'Mensaje estilo WhatsApp, inspirado en las referencias.', media: 'image', params: [P('text', 'Hola Pulse', 'Mensaje'), O('quote', '', 'Texto adicional')] },
-    { id: 'imessagequote', group: 'chats', desc: 'Mensaje estilo iMessage, inspirado en las referencias.', media: 'image', params: [P('text', 'Hola Pulse', 'Mensaje'), O('quote', '', 'Texto adicional')] },
-    { id: 'imessagetyping', group: 'chats', desc: 'Escribiendo estilo iMessage, inspirado en las referencias.', media: 'image', params: [P('text', 'Hola Pulse', 'Mensaje'), O('reply', '', 'Texto adicional')] },
-    { id: 'perfilchat', group: 'chats', desc: 'Perfil de chat personalizable, sin datos reales.', media: 'image', params: [O('name', 'Pulse', 'Nombre'), O('text', 'Hola, uso Pulse', 'Información'), O('image', '', 'Foto de perfil')] },
-    { id: 'ilove', group: 'tipografia', desc: 'Diseño tipográfico inspirado en i <3.', media: 'image', params: [P('text', 'money', 'Palabra o frase')] },
+    { id: 'cartelanime1', group: 'carteles', desc: 'Cartel Anime 1: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image']), O('color', '', 'Color del texto'), O('size', '1', 'Escala del texto')] },
+    { id: 'cartelanime2', group: 'carteles', desc: 'Cartel Anime 2: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image']), O('color', '', 'Color del texto'), O('size', '1', 'Escala del texto')] },
+    { id: 'cartelanime3', group: 'carteles', desc: 'Cartel Anime 3: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image']), O('color', '', 'Color del texto'), O('size', '1', 'Escala del texto')] },
+    { id: 'cartelanime4', group: 'carteles', desc: 'Cartel Anime 4: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image']), O('color', '', 'Color del texto'), O('size', '1', 'Escala del texto')] },
+    { id: 'cartelbob', group: 'carteles', desc: 'Cartel Bob: añade texto o una imagen.', media: 'image', params: [O('text', 'Hola Pulse', 'Texto del cartel'), O('image', '', 'Imagen opcional para el cartel'), S('mode', 'text', 'Mostrar texto o imagen', ['text', 'image']), O('color', '', 'Color del texto'), O('size', '1', 'Escala del texto')] },
+    { id: 'whatsappquote', group: 'chats', desc: 'Mensaje de WhatsApp con menú de reacciones; admite cita y hora.', media: 'image', params: [
+      P('text', 'Hola Pulse', 'Mensaje principal'), O('quote', '', 'Mensaje citado; al completarlo se usa la variante con cita'),
+      O('author', 'Tú', 'Autor de la cita'), O('time', '', 'Hora del mensaje'),
+      S('variant', 'simple', 'Variante de la referencia', ['simple', 'cita']), O('color', '', 'Color del mensaje, hex sin #')
+    ] },
+    { id: 'imessagequote', group: 'chats', desc: 'Mensaje de iMessage con reacciones y menú.', media: 'image', params: [
+      P('text', 'Hola Pulse', 'Mensaje'), O('color', '', 'Color del mensaje, hex sin #')
+    ] },
+    { id: 'imessagetyping', group: 'chats', desc: 'Conversación con teclado de iMessage.', media: 'image', params: [
+      P('text', '¿Qué quieres?', 'Mensaje recibido'), O('reply', 'Tú', 'Texto escrito'),
+      O('suggestion', '', 'Segunda sugerencia del teclado'), O('time', 'Yesterday 8:11 PM', 'Fecha y hora'), O('color', '', 'Color de los mensajes')
+    ] },
+    { id: 'perfilchat', group: 'chats', desc: 'Perfil de chat con foto y campos editables, sin datos personales de la referencia.', media: 'image', params: [
+      O('name', 'Pulse', 'Nombre'), O('text', 'Hola, uso Pulse', 'Información'), O('image', '', 'Foto de perfil'),
+      O('username', '', 'Nombre de usuario'), O('phone', '', 'Teléfono'), O('link', '', 'Texto de enlaces')
+    ] },
+    { id: 'ilove', group: 'tipografia', desc: 'Diseño i <3 con palabra curvada personalizable.', media: 'image', params: [P('text', 'money', 'Palabra o frase')] },
     { id: 'brat', group: 'brats', desc: 'Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color.', media: 'image', params: [
       P('text', 'Hehe this is brat 💸', 'Texto del sticker'),
       O('bg', 'ffffff', 'Color de fondo hex sin #'),
