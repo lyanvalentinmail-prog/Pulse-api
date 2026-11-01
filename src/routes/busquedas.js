@@ -35,7 +35,7 @@ const SOURCES = {
 
 async function handle(req, res) {
   const id = String(req.params.id || '').toLowerCase();
-  const source = SOURCES[id];
+  const source = Object.hasOwn(SOURCES, id) ? SOURCES[id] : null;
   if (!source) {
     return sendError(res, 404, `Búsqueda "${id}" no existe`,
       `Disponibles: ${Object.keys(SOURCES).join(', ')} — mirá /busquedas`);

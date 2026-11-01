@@ -149,7 +149,7 @@ const HANDLERS = {
 
 async function handle(req, res) {
   const id = String(req.params.id || '').toLowerCase();
-  const fn = HANDLERS[id];
+  const fn = Object.hasOwn(HANDLERS, id) ? HANDLERS[id] : null;
   if (!fn) {
     return sendError(res, 404, `Descarga "${id}" no existe`,
       `Disponibles: ${Object.keys(HANDLERS).join(', ')} — mirá /descargas`);

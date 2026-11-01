@@ -1,91 +1,25 @@
-// src/routes/audios.js — Router de la categoría **AUDIOS**.
-//
-// Montado en src/server.js como /audios. Está vacío a propósito: todavía no
-// publica ningún endpoint, así que cualquier /audios/... cae en el 404 general.
-//
-// ➕ AGREGAR un endpoint (3 pasos):
-//   1) escribí el handler acá abajo          → router.get('/<id>', ...)
-//   2) agregá la ficha en src/catalog/audios.js
-//   3) corré `npm run check`
-//
-// Forma de un handler JSON (todos los endpoints usan el mismo sobre de respuesta):
-//
-//   const config = require('../config');
-//   const { sendError } = require('../utils/response');
-//
-//   router.get('/hola', (req, res) => {
-//     const { text } = req.query;
-//     if (!text) return sendError(res, 400, 'Falta el parámetro text');
-//     return res.json({ creator: config.creator, status: true, result: { text } });
-//   });
+// Efectos de audio: el resultado es un MP3 reproducible y descargable.
 const express = require('express');
+const { effects, processAudio } = require('../utils/audioEffects');
+const { sendError, sendMedia } = require('../utils/response');
+const { networkMessage } = require('../utils/http');
 
 const router = express.Router();
-const config = require('../config');
-const { sendError } = require('../utils/response');
+const jsonBody = express.json({ limit: '1mb' });
 
-// Helper para simular el procesamiento (en producción iría a los servicios reales)
-const processAudio = (type, params) => {
-  // Simulación de respuesta JSON genérica para efectos de audio
-  // Se requiere el parámetro 'url' (archivo de audio)
-  return {
-    creator: config.creator,
-    status: true,
-    result: {
-      type,
-      params,
-      message: `Efecto ${type} aplicado con éxito al archivo de audio`,
-      audioUrl: `https://example.com/audio/${type}.mp3` // Placeholder
-    }
-  };
-};
-
-router.get('/robot', (req, res) => {
-  const { url, pitch = '1.0' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('robot', { url, pitch }));
-});
-
-router.get('/reverse', (req, res) => {
-  const { url, speed = '1.0' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('reverse', { url, speed }));
-});
-
-router.get('/demon', (req, res) => {
-  const { url, intensity = '1.0' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('demon', { url, intensity }));
-});
-
-router.get('/bass', (req, res) => {
-  const { url, gain = '1.0' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('bass', { url, gain }));
-});
-
-router.get('/underwater', (req, res) => {
-  const { url, depth = '1.0' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('underwater', { url, depth }));
-});
-
-router.get('/echo', (req, res) => {
-  const { url, delay = '0.5', decay = '0.5' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('echo', { url, delay, decay }));
-});
-
-router.get('/chipmunk', (req, res) => {
-  const { url, pitch = '2.0' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('chipmunk', { url, pitch }));
-});
-
-router.get('/distortion', (req, res) => {
-  const { url, level = '0.5' } = req.query;
-  if (!url) return sendError(res, 400, 'Falta el parámetro url (archivo de audio)');
-  return res.json(processAudio('distortion', { url, level }));
-});
-
+async function handle(req, res) {
+  const id = String(req.params.id || '').toLowerCase();
+  if (!Object.hasOwn(effects, id)) return sendError(res, 404, 'Efecto de audio no encontrado');
+  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+  const params = { ...req.query, ...body };
+  try {
+    const audio = await processAudio(id, params);
+    return sendMedia(res, audio, 'audio/mpeg', `pulse-${id}.mp3`);
+  } catch (e) {
+    const status = Number(e.status) || 502;
+    return sendError(res, status, networkMessage(e) || e.message || 'No se pudo procesar el audio');
+  }
+}
+router.get('/:id', handle);
+router.post('/:id', jsonBody, handle);
 module.exports = router;
