@@ -94,12 +94,12 @@ async function main() {
     }
 
     const t = totals();
-    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 17, `routers=${t.routers} endpoints=${t.endpoints}`);
+    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 18, `routers=${t.routers} endpoints=${t.endpoints}`);
 
     // ---------- Catálogo JSON ----------
     const docs = await get(port, '/docs');
     const json = JSON.parse(docs.body.toString());
-    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 17);
+    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 18);
     ok('/docs trae las nueve categorías', json.categories.length === 9);
     ok('/docs: canvas con brat y bratvideo',
       json.categories.find(c => c.id === 'canvas').endpoints.map(e => e.id).join(',') === 'brat,bratvideo');
@@ -148,7 +148,14 @@ async function main() {
 
     // ---------- IA ----------
     const ia = json.categories.find(c => c.id === 'ia').endpoints.map(e => e.id);
-    ok('/docs: IA con gemini', ia.join(',') === 'gemini', ia.join(','));
+    ok('/docs: IA con gemini e image', ia.join(',') === 'gemini,image', ia.join(','));
+    const imageEp = json.categories.find(c => c.id === 'ia').endpoints.find(e => e.id === 'image');
+    ok('IA/image devuelve media image y prompt requerido',
+      imageEp.media === 'image' && imageEp.params[0].name === 'prompt' && imageEp.params[0].required === true);
+    const sinPromptImagen = await get(port, '/ia/image');
+    ok('GET /ia/image sin prompt → 400', sinPromptImagen.status === 400 && JSON.parse(sinPromptImagen.body.toString()).status === false);
+    const promptLargo = await get(port, `/ia/image?prompt=${'x'.repeat(1200)}`);
+    ok('GET /ia/image con prompt enorme → 400', promptLargo.status === 400);
     const sinPrompt = await get(port, '/ia/gemini');
     ok('GET /ia/gemini sin prompt → 400 o 503 sin clave', sinPrompt.status === 400 || sinPrompt.status === 503,
       `status ${sinPrompt.status}`);

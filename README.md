@@ -4,8 +4,8 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **17 endpoints** publicados:
-> Canvas (2), IA (1), Descargas (8) y Búsquedas (6). Anime, Imágenes,
+> **Estado actual:** 9 routers montados y **18 endpoints** publicados:
+> Canvas (2), IA (2), Descargas (8) y Búsquedas (6). Anime, Imágenes,
 > Herramientas, Juegos y Audios siguen vacías, listas para llenar.
 
 ```
@@ -40,7 +40,7 @@ Todos los endpoints JSON responden con el mismo sobre:
 |---|---|---|---|
 | `anime` | `/anime` | — | Waifus, personajes y búsqueda de anime |
 | `canvas` | `/canvas` | **2** | Memes e imágenes generadas al vuelo |
-| `ia` | `/ia` | **1** | Modelos y utilidades de inteligencia artificial |
+| `ia` | `/ia` | **2** | Modelos y utilidades de inteligencia artificial |
 | `descargas` | `/descargas` | **8** | Videos y música de redes sociales |
 | `busquedas` | `/busquedas` | **6** | Buscadores: Pinterest, TikTok, YouTube, fondos |
 | `imagenes` | `/imagenes` | — | Imágenes, stickers y fondos |
@@ -52,11 +52,12 @@ Rutas viejas que siguen funcionando como redirección:
 `/tools` → `/herramientas`, `/downloader` y `/download` → `/descargas`,
 `/searcher` y `/search` → `/busquedas`, `/reactions` → `/imagenes`.
 
-## 🤖 IA — 1
+## 🤖 IA — 2
 
-| Endpoint | Qué hace |
-|---|---|
-| `GET|POST /ia/gemini` | Pregunta al modelo Gemini de Google. La clave es del servidor: el usuario no manda token. |
+| Endpoint | Qué hace | Media |
+|---|---|---|
+| `GET|POST /ia/gemini` | Pregunta al modelo Gemini de Google. La clave es del servidor: el usuario no manda token. | `json` |
+| `GET|POST /ia/image` | Texto → imagen con la IA de **Perchance** (`perchance.org/apigen`). Sin clave ni token. | `image/jpeg` |
 
 ```
 GET /ia/gemini?prompt=hola&model=gemini-1.5-flash&temperature=0.4
@@ -73,6 +74,62 @@ en el repo:
 GEMINI_API_KEY=…          # variable de entorno (Render/Vercel)
 # o, en local, secrets.local.json  { "GEMINI_API_KEY": "…" }  (gitignored)
 ```
+
+### `/ia/image` — texto → imagen
+
+Devuelve **la imagen directa** (JPEG), así que sirve tal cual en un `<img>` o en
+un `curl -o`:
+
+```bash
+# la imagen, como archivo
+curl -o gato.jpg "http://localhost:3000/ia/image?prompt=un%20gato%20astronauta&style=anime"
+
+# mismo endpoint con el sobre JSON (metadatos + imagen en base64)
+curl "http://localhost:3000/ia/image?prompt=un%20gato&format=json"
+
+# descarga forzada, como cualquier otro endpoint
+curl -OJ "http://localhost:3000/ia/image?prompt=un%20gato&download=true"
+```
+
+```html
+<img src="http://localhost:3000/ia/image?prompt=pixel%20art%20castle&style=pixel-art" alt="IA">
+```
+
+| Parámetro | Ejemplo | Qué hace |
+|---|---|---|
+| `prompt` *(requerido)* | `un gato astronauta` | Qué dibujar (en inglés sale mejor; máx. 1000) |
+| `style` | `cinematic` | `anime`, `cinematic`, `photo`, `digital-art`, `pixel-art`, `3d`, `oil-painting`, `watercolor`, `comic`, `minimal` |
+| `resolution` | `768x768` | `512x512`, `512x768`, `768x512` o `768x768` |
+| `seed` | `42` | Misma semilla + mismo prompt ≈ misma imagen |
+| `negativePrompt` | `texto, marca de agua` | Lo que no querés ver (por defecto ya excluye NSFW, texto y marcas) |
+| `guidance` | `7` | Cuánto sigue el prompt (1 - 30) |
+| `provider` | `auto` | `auto` (Perchance y, si falla, Pollinations), `perchance` o `pollinations` |
+| `format` | `json` | Devuelve el sobre JSON con `image` en base64 en vez del archivo |
+
+**Cómo genera.** Perchance no tiene API oficial para servidores, así que
+`src/utils/perchance.js` habla con la misma API interna que usa
+`perchance.org/apigen`: pide el código de anuncios, verifica la sesión,
+genera y baja la imagen. El `userKey` dura ~30 s y está atado a la IP, por eso la
+sesión se cachea y se renueva sola, y las generaciones pasan de a una.
+
+Cloudflare puede pedir Turnstile a IPs de datacenter (Render, Vercel, AWS). Si
+eso pasa —o si Perchance devuelve cualquier error— el endpoint cae a
+**Pollinations**, que también es gratis y sin clave, para no quedar muerto. El
+campo `provider` de la respuesta dice de dónde salió la imagen.
+
+| Variable | Para qué |
+|---|---|
+| `PERCHANCE_AD_CODE` | Salida de emergencia: un código fresco (64 hex) si el servidor queda bloqueado |
+| `PERCHANCE_CHANNEL` | Canal del generador (por defecto `ai-text-to-image-generator`) |
+| `PERCHANCE_CLIENT_VERSION` | Hash de versión del embed, si Perchance responde `client_update_required` |
+| `IMAGE_PROVIDER` | Proveedor por defecto: `auto` (por defecto), `perchance` o `pollinations` |
+
+Las imágenes repetidas (mismo prompt + mismas opciones) salen de una caché en
+memoria de 15 minutos, y lo que Perchance marque como NSFW se corta con **422**:
+Pulse API no devuelve contenido para adultos.
+
+Las pruebas de esta parte no tocan la red (`node scripts/test-image.js`): los
+proveedores se inyectan y el protocolo se simula con un `fetch` de mentira.
 
 ## 📥 Descargas — 8
 
@@ -217,6 +274,7 @@ src/
   utils/
     brat.js            diseño brat compartido por PNG y video
     video.js           bratvideo (ffmpeg)
+    perchance.js       texto → imagen (Perchance + Pollinations) para /ia/image
     extract.js         resolvedores de Descargas (tiktok, pinterest, ig, fb…)
     search.js          buscadores (pinterest, tiktok, youtube, wallpapers…)
     http.js publicFetch.js  fetch con timeout / sólo IP públicas

@@ -1,14 +1,21 @@
 // src/routes/ia.js — Router de la categoría **IA**.
 //
 //   GET|POST /ia/gemini?prompt=…&model=gemini-2.0-flash&temperature=0.7
+//   GET|POST /ia/image?prompt=…&style=anime&resolution=768x768&seed=42
 //
-// La clave vive FUERA del repo: `GEMINI_API_KEY` (entorno) o `secrets.local.json`.
-// Sin clave el endpoint responde 503 explicando cómo cargarla; nunca se filtra
-// el valor de la clave en la respuesta ni en los logs.
+// Gemini necesita clave y vive FUERA del repo: `GEMINI_API_KEY` (entorno) o
+// `secrets.local.json`. Sin clave responde 503 explicando cómo cargarla; nunca
+// se filtra el valor de la clave en la respuesta ni en los logs.
+//
+// /ia/image no usa claves: genera con la API de Perchance (la de
+// perchance.org/apigen) y, si Cloudflare bloquea al servidor, cae a Pollinations.
+// Devuelve la imagen (JPEG) directamente; con ?format=json devuelve los datos
+// en el sobre JSON de siempre, con la imagen embebida en base64.
 const express = require('express');
 const config = require('../config');
-const { sendSuccess, sendError } = require('../utils/response');
+const { sendSuccess, sendError, sendMedia } = require('../utils/response');
 const { networkMessage } = require('../utils/http');
+const { generateImage, applyStyle } = require('../utils/perchance');
 
 const router = express.Router();
 const jsonBody = express.json({ limit: '1mb' });
@@ -97,15 +104,71 @@ async function gemini(req, res, q) {
   });
 }
 
+/** ¿El cliente quiere el sobre JSON (con la imagen en base64) en vez del archivo? */
+function wantsJson(q) {
+  const said = String(q.format || q.json || q.raw || '').toLowerCase();
+  return said === 'json' || said === 'true' || said === '1';
+}
+
+async function image(req, res, q) {
+  const prompt = String(q.prompt || q.q || q.text || '').trim();
+  if (!prompt) return sendError(res, 400, 'Falta el parámetro prompt', 'Ejemplo: /ia/image?prompt=un gato astronauta');
+  if (prompt.length > 1000) return sendError(res, 400, 'El prompt es demasiado largo (máx. 1000 caracteres)');
+
+  // El estilo se suma al prompt (y a los negativos) antes de generar.
+  const styled = applyStyle(prompt, q.style, String(q.negativePrompt || q.negative || ''));
+
+  let result;
+  try {
+    result = await generateImage({
+      prompt: styled.prompt,
+      // Sin negativos propios se usa la lista por defecto (incluye NSFW).
+      negativePrompt: styled.negative ? styled.negative : undefined,
+      resolution: q.resolution || q.size || q.aspect,
+      seed: q.seed,
+      guidanceScale: q.guidance || q.guidanceScale,
+      provider: q.provider,
+      timeoutMs: q.timeout ? Number(q.timeout) * 1000 : undefined
+    });
+  } catch (e) {
+    const status = Number(e.status) || 502;
+    console.warn('[ia/image]', e.message, e.details && e.details.length ? `· ${e.details.join(' · ')}` : '');
+    return sendError(res, status, e.message || 'No se pudo generar la imagen',
+      e.hint || (networkMessage(e) || 'Probá de nuevo en unos segundos'));
+  }
+
+  const meta = {
+    provider: result.provider,
+    prompt: styled.prompt,
+    negativePrompt: styled.negative || null,
+    resolution: result.resolution,
+    seed: result.seed,
+    width: result.width,
+    height: result.height,
+    mime: result.mime,
+    bytes: result.buffer.length,
+    cached: !!result.cached,
+    ms: result.ms
+  };
+
+  if (wantsJson(q)) {
+    // La web muestra `image` igual que cualquier otro endpoint con foto.
+    return sendSuccess(res, { ...meta, image: `data:${result.mime};base64,${result.buffer.toString('base64')}` });
+  }
+
+  // Por defecto: el archivo, listo para <img src="…/ia/image?prompt=…"> o para
+  // guardarlo con ?download=true (lo resuelve sendMedia).
+  return sendMedia(res, result.buffer, result.mime, `pulse-image-${result.seed || Date.now()}.${result.extension}`);
+}
+
 async function handle(req, res) {
   const id = String(req.params.id || '').toLowerCase();
-  if (id !== 'gemini') {
-    return sendError(res, 404, `Modelo "${id}" no existe`, 'Por ahora sólo está disponible gemini — mirá /ia');
-  }
   try {
-    return await gemini(req, res, params(req));
+    if (id === 'gemini') return await gemini(req, res, params(req));
+    if (id === 'image') return await image(req, res, params(req));
+    return sendError(res, 404, `Modelo "${id}" no existe`, 'Los modelos de IA son gemini e image — mirá /ia');
   } catch (e) {
-    console.warn('[ia/gemini]', e.message);
+    console.warn(`[ia/${id}]`, e.message);
     return sendError(res, 500, 'No se pudo consultar el modelo', e.message);
   }
 }
