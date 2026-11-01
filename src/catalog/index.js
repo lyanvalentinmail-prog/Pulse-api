@@ -7,7 +7,7 @@
 //   src/catalog/helpers.js       → P(), O(), S(), AV, AV2, textStyle(), photoStyle()
 //   src/catalog/anime.js         → ANIME         (0)   GET /anime/:id
 //   src/catalog/canvas.js        → CANVAS        (2)   GET /canvas/:id  (brat, bratvideo)
-//   src/catalog/ia.js            → IA            (0)   GET /ia/:id
+//   src/catalog/ia.js            → IA            (2)   GET /ia/:id  (gemini, image)
 //   src/catalog/descargas.js     → DESCARGAS     (0)   GET /descargas/:id
 //   src/catalog/busquedas.js     → BUSQUEDAS     (0)   GET /busquedas/:id
 //   src/catalog/imagenes.js      → IMAGENES      (0)   GET /imagenes/:id
@@ -15,8 +15,8 @@
 //   src/catalog/juegos.js        → JUEGOS        (0)   GET /juegos/:id
 //   src/catalog/audios.js        → AUDIOS        (0)   GET /audios/:id
 //
-// Los nueve routers están montados en src/server.js y hoy sólo CANVAS publica
-// endpoints. El resto son categorías listas para llenar.
+// Los nueve routers están montados en src/server.js. Publican endpoints CANVAS,
+// IA, DESCARGAS y BUSQUEDAS; el resto son categorías listas para llenar.
 //
 // ➕ AGREGAR UN ENDPOINT: se hace en 2 pasos.
 //    1) el código que responde, en src/routes/<categoría>.js
@@ -44,11 +44,12 @@ const { P, O, S, AV, AV2, textStyle, photoStyle } = require('./helpers');
 const CATEGORIES = [anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios];
 
 // ---------- Parámetros "avanzados" (se ocultan tras un botón en la web) ----------
-// Los endpoints de hoy sólo muestran 4 o 5 parámetros básicos, así que la lista
-// está vacía: nada se pliega. Si un endpoint nuevo suma opciones de estilo
-// (fuentes, rotación, zoom…), alcanza con agregar acá su nombre para que la web
-// las mande a "Opciones avanzadas" en vez de llenar el probador.
-const ADVANCED_PARAMS = new Set([]);
+// Los endpoints muestran 4 o 5 parámetros básicos; el resto se pliega. Los
+// nombres se comparan en minúsculas y valen para cualquier categoría.
+//   /ia/image → prompt, style, resolution y seed quedan a la vista;
+//               negativePrompt, guidance y provider van a "Opciones avanzadas".
+const ADVANCED_PARAMS = new Set(['negativeprompt', 'guidance', 'provider']);
+
 for (const cat of CATEGORIES) {
   for (const ep of cat.endpoints) {
     for (const p of ep.params) {

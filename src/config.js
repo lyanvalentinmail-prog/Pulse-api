@@ -45,4 +45,14 @@ module.exports = {
   // Descargas de YouTube → instancia de cobalt (https://github.com/imputnet/cobalt).
   // Si está vacío se intentan las instancias públicas.
   cobaltUrl: secret('COBALT_API_URL'),
+  // ---------- Imágenes con IA → /ia/image ----------
+  // Perchance no usa claves: el código de anuncios y la sesión se piden solos.
+  // PERCHANCE_AD_CODE es la salida de emergencia: si Cloudflare bloquea la IP del
+  // servidor, se pega acá un código fresco (64 hex) sacado del navegador.
+  perchanceAdCode: secret('PERCHANCE_AD_CODE'),
+  perchanceChannel: process.env.PERCHANCE_CHANNEL || 'ai-text-to-image-generator',
+  // Hash del cliente de Perchance; vacío = el que trae src/utils/perchance.js.
+  perchanceVersion: process.env.PERCHANCE_CLIENT_VERSION || '',
+  // auto = Perchance y, si falla, Pollinations · perchance · pollinations
+  imageProvider: process.env.IMAGE_PROVIDER || 'auto',
 };
