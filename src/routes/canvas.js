@@ -6,11 +6,12 @@ const { generateCanvas, txt } = require('../utils/canvasEngine');
 const { bratVideo } = require('../utils/video');
 const { sendPng, sendMedia, sendError } = require('../utils/response');
 const { findEndpoint } = require('../catalog');
+const { love: legacyLove } = require('../canvas/generators/_referencias');
 
 const router = express.Router();
 
 // Canvas habilitados; también deben figurar en el catálogo.
-const ALLOWED = new Set(['brat', 'bratvideo', 'cartelanime1', 'cartelanime2', 'cartelanime3', 'cartelanime4', 'cartelbob', 'whatsappquote', 'imessagequote', 'imessagetyping', 'perfilchat', 'ilove']);
+const ALLOWED = new Set(['brat', 'bratvideo', 'cartelanime1', 'cartelanime2', 'cartelanime3', 'cartelanime4', 'cartelbob', 'whatsappquote', 'imessagequote', 'imessagetyping', 'perfilchat', 'bratv2']);
 
 // Las imágenes de la galería llegan en el cuerpo (JSON) para no meter un
 // `data:` enorme en la URL: POST /canvas/brat  { "text": "..." }
@@ -18,7 +19,9 @@ const jsonBody = express.json({ limit: '24mb' });
 
 async function handleCanvas(req, res) {
   const id = String(req.params.id || '').toLowerCase();
-  if (!ALLOWED.has(id) || !findEndpoint('canvas', id)) {
+  // Se conserva el endpoint anterior para enlaces existentes, sin publicarlo en el catálogo.
+  const legacy = id === 'ilove';
+  if (!legacy && (!ALLOWED.has(id) || !findEndpoint('canvas', id))) {
     return sendError(res, 404, `Canvas "${id}" no existe`, 'Revisa la lista en /canvas');
   }
   // Parámetros del POST + query string (el body manda).
@@ -30,7 +33,7 @@ async function handleCanvas(req, res) {
       const buf = await bratVideo(txt(q, 'Welcome to Pulse API'), q);
       return sendMedia(res, buf, 'video/mp4', 'pulse-bratvideo.mp4');
     }
-    const buf = await generateCanvas(id, q);
+    const buf = legacy ? await legacyLove(q) : await generateCanvas(id, q);
     if (!buf) return sendError(res, 404, `Canvas "${id}" no existe`, 'Revisa la lista en /canvas');
     return sendPng(res, buf, `pulse-${id}.png`);
   } catch (e) {

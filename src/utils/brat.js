@@ -99,8 +99,8 @@ function fitBratText(text, spec, maxFont = spec.maxFont) {
 }
 
 /** Produce un PNG cuadrado. El mapa de emojis puede compartirse entre frames. */
-async function renderBrat(text, spec, { emojis = null, maxFont = spec.maxFont } = {}) {
-  const value = spec.uppercase ? String(text ?? '').toUpperCase() : String(text ?? '').toLowerCase();
+async function renderBrat(text, spec, { emojis = null, maxFont = spec.maxFont, preserveCase = false } = {}) {
+  const value = spec.uppercase ? String(text ?? '').toUpperCase() : preserveCase ? String(text ?? '') : String(text ?? '').toLowerCase();
   const fitted = fitBratText(value, spec, maxFont);
   const images = emojis || await emojiImages(value);
   const layer = textLayer({
