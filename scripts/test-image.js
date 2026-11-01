@@ -251,6 +251,78 @@ ok('absoluteProxyUrl arma la URL final en todos los formatos', () => {
     assert.equal(llamadas.filter(l => l.kind === 'verify').length, 2);
   });
 
+  await okAsync('Perchance: invalid_access_code renueva una sola vez y usa el mismo código', async () => {
+    P._reset();
+    llamadas.length = 0;
+    let codigos = 0;
+    let generaciones = 0;
+    const codes = ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)];
+    respuestas = {
+      adcode: () => new Response(codes[codigos++]),
+      verify: () => json({ status: 'success', userKey: HEX64 }),
+      generate: () => ++generaciones === 1
+        ? json({ status: 'invalid_access_code' })
+        : json({ status: 'success', seed: 0, imageDataUrls: [dataUrl('image/jpeg', JPEG)] })
+    };
+    const r = await P.generateImage({ prompt: 'renovar', provider: 'perchance' });
+    assert.equal(codigos, 2);
+    const verifica = llamadas.filter(l => l.kind === 'verify');
+    const genera = llamadas.filter(l => l.kind === 'generate');
+    assert.equal(new URL(verifica[1].url).searchParams.get('accessCode'), codes[1]);
+    assert.equal(new URL(genera[1].url).searchParams.get('adAccessCode'), codes[1]);
+    assert.equal(r.seed, 0);
+    const body = JSON.parse(genera[0].options.body);
+    assert.ok(body.seed > 0);
+    assert.equal(JSON.parse(genera[1].options.body).seed, body.seed);
+    assert.match(new URL(genera[0].url).searchParams.get('requestId'), /^0\.\d+$/);
+  });
+
+  await okAsync('Perchance: rechaza URL de descarga externa y HTML en lugar de imagen', async () => {
+    P._reset();
+    llamadas.length = 0;
+    respuestas = {
+      adcode: () => new Response(HEX64),
+      verify: () => json({ status: 'success', userKey: HEX64 }),
+      generate: () => json({ status: 'success', imageDownloadUrl: 'https://evil.example/api/downloadTemporaryImageViaProxy?t=1' })
+    };
+    await assert.rejects(P.generateImage({ prompt: 'externa', provider: 'perchance' }), /No se pudo generar/);
+    assert.ok(!llamadas.some(l => l.url.startsWith('https://evil.example')));
+    respuestas.generate = () => json({ status: 'success', imageId: 'id' });
+    respuestas.download = () => new Response('<html>' + 'x'.repeat(200) + '</html>', { headers: { 'content-type': 'image/jpeg' } });
+    await assert.rejects(P.generateImage({ prompt: 'html', provider: 'perchance' }), e => e.details.some(d => /imagen válida/.test(d)));
+  });
+
+  await okAsync('Perchance: NSFW se rechaza antes de descargar', async () => {
+    P._reset();
+    llamadas.length = 0;
+    respuestas = {
+      adcode: () => new Response(HEX64),
+      verify: () => json({ status: 'success', userKey: HEX64 }),
+      generate: () => json({ status: 'success', imageId: 'id', maybeNsfw: true })
+    };
+    await assert.rejects(P.generateImage({ prompt: 'marcada', provider: 'perchance' }), e => e.status === 422);
+    assert.ok(!llamadas.some(l => l.kind === 'download'));
+  });
+
+  await okAsync('Perchance: el tiempo incluye la cola y el cuerpo de la respuesta', async () => {
+    P._reset();
+    llamadas.length = 0;
+    respuestas = {
+      adcode: () => new Response(HEX64),
+      verify: () => json({ status: 'success', userKey: HEX64 }),
+      generate: () => new Response(new ReadableStream({ start() {} }))
+    };
+    const inicio = Date.now();
+    const keepAlive = setTimeout(() => {}, 6000);
+    const primera = P.generateImage({ prompt: 'lenta 1', provider: 'perchance', timeoutMs: 3300 });
+    const segunda = P.generateImage({ prompt: 'lenta 2', provider: 'perchance', timeoutMs: 3100 });
+    const results = await Promise.allSettled([primera, segunda]);
+    clearTimeout(keepAlive);
+    assert.ok(results.every(r => r.status === 'rejected'));
+    assert.ok(Date.now() - inicio < 5000);
+    assert.equal(llamadas.filter(l => l.kind === 'generate').length, 1);
+  });
+
   await okAsync('Perchance: Cloudflare 403 cae a Pollinations en modo auto', async () => {
     P._reset();
     respuestas = {

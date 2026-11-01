@@ -7,8 +7,8 @@
 // `secrets.local.json`. Sin clave responde 503 explicando cómo cargarla; nunca
 // se filtra el valor de la clave en la respuesta ni en los logs.
 //
-// /ia/image no usa claves: genera con la API de Perchance (la de
-// perchance.org/apigen) y, si Cloudflare bloquea al servidor, cae a Pollinations.
+// /ia/image intenta generar con la API interna de Perchance y, en modo auto,
+// prueba Pollinations si falla. Ninguno garantiza acceso desde el servidor.
 // Devuelve la imagen (JPEG) directamente; con ?format=json devuelve los datos
 // en el sobre JSON de siempre, con la imagen embebida en base64.
 const express = require('express');
