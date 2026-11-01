@@ -46,14 +46,9 @@ const CATEGORIES = [anime, canvas, ia, descargas, busquedas, imagenes, herramien
 // ---------- Parámetros "avanzados" (se ocultan tras un botón en la web) ----------
 // Los endpoints muestran 4 o 5 parámetros básicos; el resto se pliega. Los
 // nombres se comparan en minúsculas y valen para cualquier categoría.
-//   /ia/image        → prompt, style, resolution y seed quedan a la vista;
-//                      negativePrompt, guidance y provider se pliegan.
-//   /canvas/videotext → url y fps a la vista; el resto se pliega.
-const ADVANCED_PARAMS = new Set([
-  'negativeprompt', 'guidance', 'provider',
-  'minconfidence', 'maxframes',
-  'x', 'y', 'w', 'h', 'bgcolor', 'start', 'end'
-]);
+//   /ia/image → prompt, style, resolution y seed quedan a la vista;
+//               negativePrompt, guidance y provider van a "Opciones avanzadas".
+const ADVANCED_PARAMS = new Set(['negativeprompt', 'guidance', 'provider']);
 
 for (const cat of CATEGORIES) {
   for (const ep of cat.endpoints) {

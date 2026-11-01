@@ -8,7 +8,7 @@
 //   · que cada endpoint tenga `desc`, `id` en minúsculas y `media` válida
 //   · que cada parámetro tenga nombre, tipo (requerido/opcional) y descripción
 //   · que no se repitan parámetros dentro del mismo endpoint
-//   · que los canvas dibujados del catálogo y los del motor (src/canvas) coincidan
+//   · que los canvas del catálogo y los del motor (src/canvas) coincidan
 //   · que exista el router de cada categoría
 //   · que cada categoría en la web/API sea igual a su router
 const fs = require('fs');
@@ -18,13 +18,6 @@ const { CANVAS_IDS } = require('../src/utils/canvasEngine');
 const { VIDEO_IDS } = require('../src/utils/video');
 
 const MEDIA = new Set([undefined, null, 'image', 'video', 'audio', 'json']);
-// Endpoints de CANVAS que no dibujan: el editor de textos de video (OCR local +
-// ffmpeg) tiene sus handlers en src/routes/canvas.js, no en src/canvas.
-const TOOLS = {
-  videoeditor: { media: 'json' },
-  videotext: { media: 'json' },
-  videotextrender: { media: 'video' }
-};
 const ROUTES = {
   anime: 'anime.js',
   canvas: 'canvas.js',
@@ -91,21 +84,7 @@ if (canvasCat) {
   const inCatalog = new Set(canvasCat.endpoints.map(e => e.id));
   const inEngine = new Set([...CANVAS_IDS, ...VIDEO_IDS]);
   for (const id of inCatalog) {
-    if (inEngine.has(id)) continue;
-    const tool = TOOLS[id];
-    if (!tool) {
-      fail(`canvas/${id}: está en el catálogo pero no tiene generador (src/canvas/generators/${id}.js)`);
-      continue;
-    }
-    // Las herramientas no se dibujan: se revisa que su media declarada coincida.
-    const ep = canvasCat.endpoints.find(e => e.id === id);
-    if ((ep.media || 'json') !== tool.media) {
-      fail(`canvas/${id}: media "${ep.media || 'json'}" no coincide con la herramienta ("${tool.media}")`);
-    }
-  }
-  // Y al revés: una herramienta sin ficha avisa.
-  for (const id of Object.keys(TOOLS)) {
-    if (!inCatalog.has(id)) warn(`canvas/${id}: herramienta sin ficha en el catálogo`);
+    if (!inEngine.has(id)) fail(`canvas/${id}: está en el catálogo pero no tiene generador (src/canvas/generators/${id}.js)`);
   }
   for (const id of inEngine) if (!inCatalog.has(id)) warn(`canvas/${id}: tiene generador pero no aparece en el catálogo`);
 }

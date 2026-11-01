@@ -55,8 +55,4 @@ module.exports = {
   perchanceVersion: process.env.PERCHANCE_CLIENT_VERSION || '',
   // auto = Perchance y, si falla, Pollinations · perchance · pollinations
   imageProvider: process.env.IMAGE_PROVIDER || 'auto',
-  // ---------- Editor de textos de video → /canvas/videoeditor ----------
-  // Idioma del OCR (Tesseract, local). `eng` viene incluido; para otros hay que
-  // instalar los datos: npm i @tesseract.js-data/spa  →  VIDEO_OCR_LANG=spa
-  videoOcrLang: process.env.VIDEO_OCR_LANG || 'eng',
 };
