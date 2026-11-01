@@ -31,7 +31,7 @@ app.use('/anime', require('./routes/anime'));
 app.use('/canvas', require('./routes/canvas'));
 app.use('/ia', require('./routes/ia'));
 app.use('/descargas', require('./routes/descargas'));
-app.use('/busquedas', require('./routes/busquedas'));
+app.use(['/busquedas', '/searcher'], require('./routes/busquedas'));
 app.use('/imagenes', require('./routes/imagenes'));
 app.use('/herramientas', require('./routes/herramientas'));
 app.use('/juegos', require('./routes/juegos'));

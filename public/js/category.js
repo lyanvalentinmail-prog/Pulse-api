@@ -197,7 +197,7 @@
       const first = Array.isArray(r.items) ? r.items[0] : (Array.isArray(r.results) ? r.results[0] : null);
       if (first) return first.image || first.preview || first.gif || first.thumbnail || first.cover || first.trayIcon || first.url || null;
       if (Array.isArray(r) && r[0]) return r[0].image || r[0].gif || r[0].cover || r[0].url || null;
-      if (Array.isArray(r.images) && r.images[0]) return r.images[0].url || r.images[0].image || null;
+      if (Array.isArray(r.images) && r.images[0]) return typeof r.images[0] === 'string' ? r.images[0] : r.images[0].url || r.images[0].image || null;
     } catch (_) { /* noop */ }
     return null;
   }
@@ -231,7 +231,9 @@
   // `?download=true` en cualquier endpoint devuelve el archivo como adjunto
   // (Content-Disposition: attachment), venga de donde venga el medio.
   function withParams(path, extra) {
-    return `${path}${path.includes('?') ? '&' : '?'}${extra}`;
+    const url = new URL(path, location.origin);
+    for (const [key, value] of new URLSearchParams(extra)) url.searchParams.set(key, value);
+    return url.pathname + url.search;
   }
   const binaria = type => /^(image|video|audio)\//.test(String(type || ''));
   function downloadHref(path, json, type) {
@@ -377,13 +379,13 @@
         const json = await res.json();
         const r = json.result || {};
         const isDownload = tester.dataset.category === 'descargas';
-        const direct = withParams(path, 'direct=true');
+        const direct = r.playback || withParams(path, 'direct=true');
         const mediaType = r.type === 'image' ? 'image' :
           ['spotify', 'youtubemp3', 'audio'].includes(tester.dataset.endpoint) ? 'audio' : 'video';
         const hasMedia = isDownload && (r.video || r.videoHd || r.image || r.preview || r.download || r.audio || (Array.isArray(r.images) && r.images.length) || tester.dataset.endpoint === 'audio');
         const playable = hasMedia && mediaType !== 'image' ? { type: mediaType, url: direct } : findPlayable(json);
         const preview = hasMedia && mediaType === 'image' ? direct : findPreviewImage(json);
-        const archivo = hasMedia ? { href: withParams(direct, 'download=true') } : archivoDe(json, playable ? `${playable.type}/` : 'image/', tester.dataset.endpoint);
+        const archivo = hasMedia ? { href: r.downloadUrl || withParams(direct, 'download=true') } : archivoDe(json, playable ? `${playable.type}/` : 'image/', tester.dataset.endpoint);
         const nombreJson = `${tester.dataset.endpoint}.json`;
         const nombreArch = `${tester.dataset.endpoint}.${mediaType === 'audio' ? 'mp3' : mediaType === 'video' ? 'mp4' : 'jpg'}`;
         const btn = archivo ? btnDescargar(archivo.href, nombreArch, archivo.externo) : btnDescargarTexto(nombreJson);
