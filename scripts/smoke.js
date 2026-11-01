@@ -20,22 +20,6 @@ function get(port, p) {
   });
 }
 
-function post(port, p, body, headers = {}) {
-  return new Promise((resolve, reject) => {
-    const payload = Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
-    const req = http.request(`http://127.0.0.1:${port}${p}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length, ...headers }
-    }, res => {
-      const chunks = [];
-      res.on('data', c => chunks.push(c));
-      res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'] || '', body: Buffer.concat(chunks), headers: res.headers }));
-    });
-    req.on('error', reject);
-    req.end(payload);
-  });
-}
-
 function getRange(port, p, range) {
   return new Promise((resolve, reject) => {
     http.get(`http://127.0.0.1:${port}${p}`, { headers: { Range: range } }, res => {
@@ -110,16 +94,15 @@ async function main() {
     }
 
     const t = totals();
-    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 21, `routers=${t.routers} endpoints=${t.endpoints}`);
+    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 18, `routers=${t.routers} endpoints=${t.endpoints}`);
 
     // ---------- Catálogo JSON ----------
     const docs = await get(port, '/docs');
     const json = JSON.parse(docs.body.toString());
-    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 21);
+    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 18);
     ok('/docs trae las nueve categorías', json.categories.length === 9);
-    ok('/docs: canvas con brat, bratvideo y el editor de video',
-      json.categories.find(c => c.id === 'canvas').endpoints.map(e => e.id).join(',') === 'brat,bratvideo,videoeditor,videotext,videotextrender',
-      json.categories.find(c => c.id === 'canvas').endpoints.map(e => e.id).join(','));
+    ok('/docs: canvas con brat y bratvideo',
+      json.categories.find(c => c.id === 'canvas').endpoints.map(e => e.id).join(',') === 'brat,bratvideo');
 
     const ping = await get(port, '/ping');
     const pong = JSON.parse(ping.body.toString());
@@ -135,88 +118,6 @@ async function main() {
 
     const missingCanvas = await get(port, '/canvas/quotly');
     ok('GET /canvas/quotly → 404 (retirado)', missingCanvas.status === 404);
-
-    // ---------- Editor de textos de video ----------
-    const editorJson = await get(port, '/canvas/videoeditor');
-    const editorData = JSON.parse(editorJson.body.toString());
-    ok('GET /canvas/videoeditor (fetch) → JSON con la API del editor',
-      editorJson.status === 200 && editorData.result.editor === '/canvas/videoeditor'
-        && editorData.result.analyze.path === '/canvas/videotext');
-
-    const editorHtml = await new Promise((resolve, reject) => {
-      http.get(`http://127.0.0.1:${port}/canvas/videoeditor`, { headers: { Accept: 'text/html,*/*' } }, res => {
-        const chunks = [];
-        res.on('data', c => chunks.push(c));
-        res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));
-      }).on('error', reject);
-    });
-    ok('GET /canvas/videoeditor (navegador) → HTML del editor',
-      editorHtml.status === 200 && editorHtml.body.includes('Video Text Editor')
-        && editorHtml.body.includes('/js/videoeditor.js') && editorHtml.body.includes('id="timeline"'));
-
-    const veJs = await get(port, '/js/videoeditor.js');
-    const veCss = await get(port, '/css/videoeditor.css');
-    ok('GET /js/videoeditor.js y /css/videoeditor.css', veJs.status === 200 && veCss.status === 200
-      && veJs.body.toString().includes('videotextrender') && veCss.body.toString().includes('.ve-timeline'));
-
-    const sinVideo = await get(port, '/canvas/videotext');
-    ok('GET /canvas/videotext sin video → 400', sinVideo.status === 400 && JSON.parse(sinVideo.body.toString()).status === false);
-
-    const noEsVideo = await post(port, '/canvas/videotext', Buffer.from('esto no es un video, es texto plano'), { 'Content-Type': 'video/mp4' });
-    ok('POST /canvas/videotext con algo que no es video → 400', noEsVideo.status === 400);
-
-    const sinTextos = await post(port, '/canvas/videotextrender', { id: 'x' });
-    ok('POST /canvas/videotextrender sin texts → 400', sinTextos.status === 400 && JSON.parse(sinTextos.body.toString()).status === false);
-
-    const videoVencido = await post(port, '/canvas/videotextrender', { id: 'no-existe', texts: [{ text: 'hola', start: 0, end: 1, x: 0.1, y: 0.1, w: 0.3, h: 0.1 }] });
-    ok('POST /canvas/videotextrender con video vencido → 404', videoVencido.status === 404);
-
-    const frameVencido = await get(port, '/canvas/videotext/frame/no-existe');
-    ok('GET /canvas/videotext/frame/:id desconocido → 404', frameVencido.status === 404);
-
-    // Flujo real (ffmpeg + OCR): un video de 2 s con una palabra bien grande.
-    const { execFileSync } = require('child_process');
-    const os = require('os');
-    const fs = require('fs');
-    const pathMod = require('path');
-    let ffmpeg = null;
-    try { ffmpeg = require('@ffmpeg-installer/ffmpeg').path; } catch (_) { /* sin ffmpeg */ }
-    let tess = false;
-    try { require('@tesseract.js-data/eng'); tess = true; } catch (_) { /* sin datos */ }
-    if (ffmpeg && tess) {
-      const tmp = fs.mkdtempSync(pathMod.join(os.tmpdir(), 'pulse-smoke-'));
-      const file = pathMod.join(tmp, 'ok.mp4');
-      execFileSync(ffmpeg, ['-hide_banner', '-y', '-loglevel', 'error', '-f', 'lavfi',
-        '-i', 'color=c=black:s=640x360:d=2:r=15',
-        '-vf', `drawtext=fontfile=${pathMod.join(__dirname, '..', 'assets', 'fonts', 'Inter-Bold.ttf')}:text='PULSE OCR':fontcolor=white:fontsize=56:x=60:y=120`,
-        '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', file], { timeout: 60000 });
-      const subida = await post(port, '/canvas/videotext', fs.readFileSync(file), { 'Content-Type': 'video/mp4' });
-      const analisis = JSON.parse(subida.body.toString());
-      ok('POST /canvas/videotext (video real) → textos detectados',
-        subida.status === 200 && analisis.result.texts.length >= 1
-          && /PULSE/i.test(analisis.result.texts[0].text),
-        analisis.result ? JSON.stringify(analisis.result.texts.map(t => t.text)) : analisis.error);
-
-      if (analisis.result) {
-        const id = analisis.result.id;
-        const t = analisis.result.texts[0];
-        const frame = await get(port, `/canvas/videotext/frame/${id}?t=0.5`);
-        ok('GET /canvas/videotext/frame/:id → JPEG', frame.status === 200 && frame.type.includes('image/jpeg') && frame.body.length > 1000);
-        const videoSubido = await get(port, `/canvas/videotext/video/${id}`);
-        ok('GET /canvas/videotext/video/:id → MP4', videoSubido.status === 200 && videoSubido.type.includes('video/mp4'));
-
-        const render = await post(port, '/canvas/videotextrender', {
-          id,
-          texts: [{ text: 'EDITADO', start: t.start, end: t.end, box: t.box, color: 'ffd166' }]
-        });
-        ok('POST /canvas/videotextrender (video real) → MP4 editado',
-          render.status === 200 && render.type.includes('video/mp4') && isMp4(render.body),
-          `HTTP ${render.status} · ${render.body.length} bytes`);
-      }
-      fs.rmSync(tmp, { recursive: true, force: true });
-    } else {
-      console.log('⚠️  Salto el flujo real del editor: falta ffmpeg o los datos de Tesseract');
-    }
 
     for (const r of ['/tools/emoji', '/anime/neko', '/reactions/hug', '/downloader/ytmp4', '/searcher/yt']) {
       const res = await get(port, r);
@@ -276,12 +177,10 @@ async function main() {
     ok('GENERATORS sin claves de más', Object.keys(GENERATORS).every(id => CANVAS_IDS.includes(id)));
   } finally {
     await new Promise(r => server.close(r));
-    // El OCR deja un worker de WASM vivo: se cierra para que el proceso salga.
-    await require('../src/utils/videoText').closeOcr();
   }
 
   console.log(`\n${failures ? `✗ ${failures} fallo(s)` : '✓ Todo en orden'}`);
-  process.exit(failures ? 1 : 0);
+  if (failures) process.exitCode = 1;
 }
 
 main().catch(err => {

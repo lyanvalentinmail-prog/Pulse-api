@@ -4,8 +4,8 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **21 endpoints** publicados:
-> Canvas (5), IA (2), Descargas (8) y Búsquedas (6). Anime, Imágenes,
+> **Estado actual:** 9 routers montados y **18 endpoints** publicados:
+> Canvas (2), IA (2), Descargas (8) y Búsquedas (6). Anime, Imágenes,
 > Herramientas, Juegos y Audios siguen vacías, listas para llenar.
 
 ```
@@ -39,7 +39,7 @@ Todos los endpoints JSON responden con el mismo sobre:
 | Carpeta | Ruta | Endpoints hoy | Para qué |
 |---|---|---|---|
 | `anime` | `/anime` | — | Waifus, personajes y búsqueda de anime |
-| `canvas` | `/canvas` | **5** | Memes, imágenes y el editor de textos de video |
+| `canvas` | `/canvas` | **2** | Memes e imágenes generadas al vuelo |
 | `ia` | `/ia` | **2** | Modelos y utilidades de inteligencia artificial |
 | `descargas` | `/descargas` | **8** | Videos y música de redes sociales |
 | `busquedas` | `/busquedas` | **6** | Buscadores: Pinterest, TikTok, YouTube, fondos |
@@ -178,15 +178,12 @@ curl "http://localhost:3000/busquedas/wallpapers?q=naruto&limit=5"
 curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
 ```
 
-## 🎨 Canvas — 5
+## 🎨 Canvas — 2
 
 | Endpoint | Qué hace | Media |
 |---|---|---|
 | `GET /canvas/brat` | Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color. | `image/png` |
 | `GET /canvas/bratvideo` | El mismo diseño en video MP4: las palabras aparecen una por una. | `video/mp4` |
-| `GET /canvas/videoeditor` | **Editor de textos de video** (HTML): subís un video, detecta sus textos y los editás. | `text/html` |
-| `GET\|POST /canvas/videotext` | Analiza un video y devuelve cada texto con su caja, su tiempo y su confianza (OCR local). | `application/json` |
-| `GET\|POST /canvas/videotextrender` | Tapa los textos originales y dibuja los nuevos; devuelve el MP4 editado. | `video/mp4` |
 
 ### Parámetros
 
@@ -226,119 +223,6 @@ El video y el PNG comparten el mismo motor de dibujo: a igual tamaño y opciones
 el frame del video y el PNG se ven exactamente igual. La tipografía y los emojis
 salen del repo (`assets/fonts`, `assets/emoji`), así que no hay cuadrados `▯▯▯`
 ni fuentes remotas en tiempo de ejecución.
-
-## 🎞️ Editor de textos de video
-
-`/canvas/videoeditor` es un editor en el navegador: soltás un video, el servidor
-detecta **todos los textos** que aparecen y los muestra como capas encima del
-reproductor y como bloques en la línea de tiempo. Cada bloque se puede editar
-(texto, inicio/fin, color, tamaño, tipografía), arrastrar sobre el video y
-exportar: el original queda tapado y el texto nuevo se dibuja encima, con el
-video ya renderizado en MP4.
-
-```
-/canvas/videoeditor                 → el editor (HTML)
-POST /canvas/videotext              → sube el video y devuelve los textos
-POST /canvas/videotextrender        → devuelve el MP4 con los textos nuevos
-```
-
-### 1. Detectar
-
-El video va en el cuerpo de la petición tal cual (`Content-Type: video/mp4`), o
-por URL pública con `?url=`:
-
-```bash
-# subida directa
-curl -X POST --data-binary @video.mp4 -H "Content-Type: video/mp4" \
-  http://localhost:3000/canvas/videotext
-
-# o un video público (se valida que la IP sea pública, como el resto del repo)
-curl -X POST "http://localhost:3000/canvas/videotext?url=https://…/video.mp4"
-```
-
-```json
-{
-  "status": true,
-  "result": {
-    "id": "d7464834dad6a2030b",
-    "video": { "duration": 6, "width": 960, "height": 540, "fps": 25, "hasAudio": false },
-    "texts": [
-      { "id": "t1", "text": "PRIMERA ESCENA", "start": 0, "end": 2.5, "confidence": 91,
-        "box": { "x": 0.0448, "y": 0.15, "w": 0.4406, "h": 0.0667 } },
-      { "id": "t2", "text": "SEGUNDA ESCENA", "start": 3, "end": 5.5, "confidence": 91,
-        "box": { "x": 0.0646, "y": 0.5574, "w": 0.4271, "h": 0.0611 } }
-    ],
-    "preview": {
-      "video": "/canvas/videotext/video/d7464834dad6a2030b",
-      "frame": "/canvas/videotext/frame/d7464834dad6a2030b?t="
-    }
-  }
-}
-```
-
-Las cajas van en **proporciones** (0 - 1) para que sirvan en cualquier tamaño.
-El `id` dura 45 minutos en memoria; las siguientes llamadas lo reutilizan.
-
-Parámetros: `url`, `fps` (0.5 - 3 fotogramas por segundo), `minConfidence`
-(0 - 95) y `maxFrames` (4 - 40).
-
-### 2. Exportar
-
-```bash
-curl -X POST http://localhost:3000/canvas/videotextrender \
-  -H 'Content-Type: application/json' \
-  -d '{
-        "id": "d7464834dad6a2030b",
-        "texts": [
-          { "text": "NUEVO TEXTO", "start": 0, "end": 2.5,
-            "box": { "x": 0.0448, "y": 0.15, "w": 0.4406, "h": 0.0667 },
-            "color": "ffd166", "fontSizePct": 110 }
-        ]
-      }' -o editado.mp4
-```
-
-Cada bloque acepta `text`, `start`, `end`, `box` (o `x`, `y`, `w`, `h`),
-`color`, `bgColor`, `font` (`sans`, `serif`, `mono`, `hand`), `fontSizePct`
-(30 - 200) e `hideOriginal` (tapa el texto viejo con un parche del color del
-fondo real del video: sale de la mediana de los píxeles que rodean el texto).
-También hay un atajo por GET, con un solo bloque:
-
-```bash
-curl "http://localhost:3000/canvas/videotextrender?id=…&text=Hola&start=0&end=3&x=0.1&y=0.6&w=0.4&h=0.1" -o editado.mp4
-```
-
-### Cómo funciona (todo local)
-
-1. **ffmpeg** saca los fotogramas (1 por segundo por defecto, ajustado en videos
-   largos para no pasar de 40) y los deja en un directorio temporal.
-2. **Tesseract.js (WASM)** lee cada fotograma y devuelve las líneas con su caja y
-   su confianza. Los fotogramas idénticos al anterior no se vuelven a leer.
-3. Las detecciones se agrupan en **pistas**: mismo texto + misma zona = un bloque
-   con inicio y fin. La duración de cada bloque se estira hasta medio paso de
-   muestreo después de la última vez que se vio ese texto.
-4. Al exportar, **ffmpeg** tapa el original (`drawbox`) y dibuja el nuevo
-   (`drawtext`) sólo durante el intervalo del bloque, y copia el audio intacto.
-
-Ni el video ni el texto salen del servidor: el OCR corre en el proceso de Node.
-
-| Límite | Valor |
-|---|---|
-| Tamaño del video | 80 MB |
-| Duración | 5 minutos |
-| Fotogramas analizados | 40 |
-| Bloques devueltos | 40 |
-| Videos guardados a la vez | 4 (45 minutos cada uno) |
-
-El modelo de OCR es **inglés** (`eng`) por defecto, que además lee bien textos en
-mayúsculas y códigos. Para español:
-
-```bash
-npm i @tesseract.js-data/spa
-VIDEO_OCR_LANG=spa        # .env / Render / Vercel
-```
-
-Las pruebas de esta parte (`node scripts/test-videotext.js`) generan un video con
-ffmpeg, lo analizan, exportan y verifican que el texto original quede tapado.
 
 ## 🎬 Portada (`/welcome`)
 
@@ -390,8 +274,6 @@ src/
   utils/
     brat.js            diseño brat compartido por PNG y video
     video.js           bratvideo (ffmpeg)
-    videoText.js       editor de textos de video: OCR, pistas y render
-    videoStore.js      videos subidos (temporales, 45 min)
     perchance.js       texto → imagen (Perchance + Pollinations) para /ia/image
     extract.js         resolvedores de Descargas (tiktok, pinterest, ig, fb…)
     search.js          buscadores (pinterest, tiktok, youtube, wallpapers…)

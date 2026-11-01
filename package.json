@@ -6,14 +6,13 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node scripts/smoke.js && node scripts/test-extract.js && node scripts/test-image.js && node scripts/test-videotext.js && node scripts/test-brat.js",
+    "test": "node scripts/smoke.js && node scripts/test-extract.js && node scripts/test-image.js && node scripts/test-brat.js",
     "check": "node scripts/validate-catalog.js",
     "test:smoke": "node scripts/smoke.js",
     "test:brat": "node scripts/test-brat.js",
     "lint": "eslint src scripts api public/js eslint.config.js",
     "test:extract": "node scripts/test-extract.js",
-    "test:image": "node scripts/test-image.js",
-    "test:videotext": "node scripts/test-videotext.js"
+    "test:image": "node scripts/test-image.js"
   },
   "engines": {
     "node": "24.x"
@@ -21,12 +20,10 @@
   "license": "MIT",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@tesseract.js-data/eng": "^1.0.0",
     "express": "^4.21.2",
     "ipaddr.js": "^2.5.0",
     "opentype.js": "^1.3.4",
     "sharp": "^0.35.5",
-    "tesseract.js": "^7.0.0",
     "undici": "^7.30.1"
   },
   "devDependencies": {
