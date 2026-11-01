@@ -10,9 +10,9 @@
 //
 // Formato de una entrada:
 //
-//   {\n//     id: 'miEndpoint',          // = la ruta: GET /audios/miEndpoint (minúsculas, sin espacios)\n//     desc: 'Qué hace',          // se ve en la web, en /docs y en el README\n//     media: 'image',            // opcional: 'image' | 'video' | 'audio' | 'json'\n//     params: [\n//       P('text', 'hola', 'Texto principal'),   // requerido\n//       O('size', '1', 'Escala (0.5 - 2)')      // opcional\n//     ]\n//   }\n//
+//   {\n//     id: 'miEndpoint',          // = la ruta: GET /audios/miEndpoint (minúsculas, sin espacios)\\n//     desc: 'Qué hace',          // se ve en la web, en /docs y en el README\\n//     media: 'image',            // opcional: 'image' | 'video' | 'audio' | 'json'\\n//     params: [\\n//       P('text', 'hola', 'Texto principal'),   // requerido\\n//       O('size', '1', 'Escala (0.5 - 2)')      // opcional\\n//     ]\\n//   }\\n//
 // Ayudas (src/catalog/helpers.js): P, O, S, AV, AV2, textStyle(), photoStyle().
-const { P, O, S } = require('./helpers');
+const { P, O, S, url, direct } = require('./helpers');
 
 module.exports = {
   id: 'audios',
@@ -24,7 +24,7 @@ module.exports = {
       desc: 'Efecto de voz robot (modulación metálica).',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto a procesar'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('pitch', '1.0', 'Tono (0.5 - 2.0)')
       ]
     },
@@ -33,7 +33,7 @@ module.exports = {
       desc: 'Reproduce el audio o texto al revés.',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto o URL del audio'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('speed', '1.0', 'Velocidad de reproducción')
       ]
     },
@@ -42,7 +42,7 @@ module.exports = {
       desc: 'Efecto de voz demoníaca (grave y distorsionada).',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto a procesar'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('intensity', '1.0', 'Intensidad del efecto (0.0 - 1.0)')
       ]
     },
@@ -51,7 +51,7 @@ module.exports = {
       desc: 'Efecto de graves profundos (sub-bass boost).',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto o URL del audio'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('gain', '1.0', 'Ganancia de graves (0.5 - 3.0)')
       ]
     },
@@ -60,7 +60,7 @@ module.exports = {
       desc: 'Efecto de sonido sumergido bajo el agua.',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto o URL del audio'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('depth', '1.0', 'Profundidad (0.0 - 1.0)')
       ]
     },
@@ -69,7 +69,7 @@ module.exports = {
       desc: 'Efecto de eco (reverberación repetitiva).',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto o URL del audio'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('delay', '0.5', 'Retraso entre ecos (0.1 - 2.0)'),
         O('decay', '0.5', 'Decaimiento (0.0 - 1.0)')
       ]
@@ -79,7 +79,7 @@ module.exports = {
       desc: 'Efecto de voz agudizada (estilo ardilla).',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto a procesar'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('pitch', '2.0', 'Tono (1.5 - 3.0)')
       ]
     },
@@ -88,7 +88,7 @@ module.exports = {
       desc: 'Efecto de distorsión (estilo saturado o fuzz).',
       media: 'audio',
       params: [
-        P('text', 'Hola Pulse', 'Texto o URL del audio'),
+        P('audio', 'https://example.com/sample.mp3', 'URL del audio de entrada (requerido)'),
         O('level', '0.5', 'Nivel de distorsión (0.0 - 1.0)')
       ]
     }
