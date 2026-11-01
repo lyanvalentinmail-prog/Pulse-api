@@ -198,4 +198,4 @@ function absoluteUrl(req, path) {
   return `${proto}://${host}${path}`;
 }
 
-module.exports = { UA_DESKTOP, UA_MOBILE, fetchWithTimeout, fetchJson, postJson, fetchText, fetchBuffer, firstSuccess, firstFast, networkMessage, absoluteUrl };
+module.exports = { UA_DESKTOP, UA_MOBILE, fetchWithTimeout, readLimited, fetchJson, postJson, fetchText, fetchBuffer, firstSuccess, firstFast, networkMessage, absoluteUrl };

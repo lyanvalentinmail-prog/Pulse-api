@@ -16,13 +16,12 @@
 // una fila de a una.
 //
 // Cloudflare puede pedir Turnstile a IPs de datacenter (Render, Vercel, AWS…).
-// Cuando eso pasa —o cuando Perchance devuelve cualquier error— `generateImage`
-// cae al respaldo de Pollinations (image.pollinations.ai), que también es gratis
-// y sin clave, para que /ia/image no quede muerto en producción. El campo
-// `provider` de la respuesta dice de dónde salió la imagen.
+// En modo auto, si Perchance falla se intenta Pollinations; ambos servicios
+// pueden cambiar, bloquear la IP o exigir autenticación. El campo `provider`
+// indica cuál generó la imagen; no se garantiza que el respaldo esté disponible.
 const crypto = require('crypto');
 const config = require('../config');
-const { fetchWithTimeout, UA_DESKTOP } = require('./http');
+const { fetchWithTimeout, readLimited, UA_DESKTOP } = require('./http');
 
 // ---------- Endpoints ----------
 const API = {
@@ -82,7 +81,22 @@ class ImageError extends Error {
 
 // ---------- Utilidades puras (probadas en scripts/test-image.js) ----------
 const randomHex = bytes => crypto.randomBytes(bytes).toString('hex');
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms, signal) => new Promise((resolve, reject) => {
+  if (signal.aborted) return reject(signal.reason);
+  const onAbort = () => { clearTimeout(timer); reject(signal.reason); };
+  const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+  signal.addEventListener('abort', onAbort, { once: true });
+});
+
+function withinSignal(promise, signal) {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(value => { signal.removeEventListener('abort', onAbort); resolve(value); },
+      error => { signal.removeEventListener('abort', onAbort); reject(error); });
+  });
+}
 
 /** Normaliza `resolution` (acepta 768x768, "square", "portrait", 768×768…). */
 function normResolution(value) {
@@ -232,13 +246,14 @@ function saveCookies(host, headers) {
 }
 
 /** fetch con cabeceras de navegador, cookies por host y persistencia de sesión. */
-async function request(url, { method = 'GET', headers = {}, body, timeoutMs = 15000 } = {}) {
+async function request(url, { method = 'GET', headers = {}, body, timeoutMs = 15000, signal } = {}) {
   const host = new URL(url).host;
   const cookie = cookieHeaderFor(host);
   const res = await fetchWithTimeout(url, {
     method,
     body,
-    redirect: 'follow',
+    signal,
+    redirect: new URL(url).origin === EMBED_ORIGIN ? 'error' : 'follow',
     headers: {
       'User-Agent': UA_DESKTOP,
       Accept: '*/*',
@@ -254,31 +269,23 @@ async function request(url, { method = 'GET', headers = {}, body, timeoutMs = 15
   return res;
 }
 
-async function readText(res, maxBytes = 1024 * 1024) {
-  const text = await res.text();
-  return text.length > maxBytes ? text.slice(0, maxBytes) : text;
+async function readText(res, maxBytes = 1024 * 1024, signal) {
+  return (await readLimited(res, maxBytes, signal)).toString('utf8');
 }
 
-async function readBuffer(res, maxBytes = 25 * 1024 * 1024) {
-  const length = Number(res.headers.get('content-length'));
-  if (Number.isFinite(length) && length > maxBytes) {
-    res.body?.cancel().catch(() => {});
-    throw new ImageError('La imagen remota supera el tamaño máximo permitido', { code: 'size' });
-  }
-  const buffer = Buffer.from(await res.arrayBuffer());
-  if (buffer.length > maxBytes) throw new ImageError('La imagen remota supera el tamaño máximo permitido', { code: 'size' });
-  return buffer;
+async function readBuffer(res, maxBytes = 25 * 1024 * 1024, signal) {
+  return readLimited(res, maxBytes, signal);
 }
 
 const BLOCKED_HINT = 'El servidor no pudo pasar el filtro de Perchance (Cloudflare/Turnstile). ' +
-  'Probá ?provider=pollinations, o cargá PERCHANCE_AD_CODE con un código fresco.';
+  'Probá ?provider=pollinations; un código de anuncios no evita necesariamente Turnstile.';
 
 /** Código de anuncios: es lo que habilita la generación gratis. */
-async function getAdCode({ force = false, timeoutMs = 12000 } = {}) {
+async function getAdCode({ force = false, timeoutMs = 12000, signal } = {}) {
   if (config.perchanceAdCode) return config.perchanceAdCode;
   if (!force && state.adCode && Date.now() - state.adCodeAt < AD_TTL) return state.adCode;
   const res = await request(`${API.adCode}?__cacheBust=${Math.random()}`, {
-    timeoutMs,
+    timeoutMs, signal,
     headers: { Referer: API.page, Origin: 'https://perchance.org', Accept: '*/*' }
   });
   if (!res.ok) {
@@ -287,7 +294,7 @@ async function getAdCode({ force = false, timeoutMs = 12000 } = {}) {
       { code: 'blocked', hint: BLOCKED_HINT }
     );
   }
-  const text = (await readText(res, 64 * 1024)).trim();
+  const text = (await readText(res, 64 * 1024, signal)).trim();
   const code = (text.match(/[a-f0-9]{32,128}/i) || [])[0];
   if (!code) throw new ImageError('Perchance no entregó el código de acceso', { code: 'blocked', hint: BLOCKED_HINT });
   state.adCode = code;
@@ -296,9 +303,9 @@ async function getAdCode({ force = false, timeoutMs = 12000 } = {}) {
 }
 
 /** userKey: la credencial corta que firma la generación (dura ~30 s). */
-async function getUserKey({ force = false, timeoutMs = 12000 } = {}) {
+async function getUserKey({ force = false, timeoutMs = 12000, signal, accessCode } = {}) {
   if (!force && state.userKey && Date.now() - state.userKeyAt < KEY_TTL) return state.userKey;
-  const accessCode = await getAdCode({ force, timeoutMs });
+  accessCode = accessCode || await getAdCode({ timeoutMs, signal });
   let status = 'sin respuesta';
 
   // El parámetro se llamó de las dos formas según la versión del embed.
@@ -306,14 +313,14 @@ async function getUserKey({ force = false, timeoutMs = 12000 } = {}) {
     const url = `${API.verify}?browserId=${state.browserId}&${field}=${encodeURIComponent(accessCode)}` +
       `&thread=0&__cacheBust=${Math.random()}`;
     const res = await request(url, {
-      timeoutMs,
+      timeoutMs, signal,
       headers: {
         Referer: `${EMBED_ORIGIN}/embed`,
         Origin: EMBED_ORIGIN,
         Accept: 'application/json, text/plain, */*'
       }
     });
-    const text = await readText(res, 256 * 1024);
+    const text = await readText(res, 256 * 1024, signal);
     let json = null;
     try { json = JSON.parse(text); } catch (_) { /* a veces contesta HTML */ }
     const key = (json && (json.userKey || json.key)) || (text.match(/"userKey"\s*:\s*"([a-f0-9]{64})"/i) || [])[1];
@@ -338,7 +345,7 @@ function enFila(fn) {
 }
 
 /** Baja la imagen que devolvió /api/generate y la deja como buffer + mime. */
-async function readPerchanceImage(json, { timeoutMs = 25000 } = {}) {
+async function readPerchanceImage(json, { timeoutMs = 25000, signal } = {}) {
   const found = extractImage(json);
   if (!found) throw new ImageError('Perchance no devolvió la imagen', { code: 'no_image' });
 
@@ -346,28 +353,30 @@ async function readPerchanceImage(json, { timeoutMs = 25000 } = {}) {
   let mime = null;
   if (found.buffer) {
     buffer = found.buffer;
-    mime = found.mime;
   } else {
     const url = found.proxy || `${API.download}?imageId=${encodeURIComponent(found.imageId)}`;
+    const parsedUrl = new URL(url);
+    if (parsedUrl.origin !== EMBED_ORIGIN || !['/api/downloadTemporaryImage', '/api/downloadTemporaryImageViaProxy'].includes(parsedUrl.pathname)) {
+      throw new ImageError('URL de descarga de Perchance no válida', { code: 'download' });
+    }
     const res = await request(url, {
-      timeoutMs,
+      timeoutMs, signal,
       headers: { Accept: 'image/*,*/*', Referer: `${EMBED_ORIGIN}/embed`, Origin: EMBED_ORIGIN }
     });
     if (!res.ok) {
       throw new ImageError(`Perchance no dejó descargar la imagen (HTTP ${res.status})`, { code: 'download', hint: BLOCKED_HINT });
     }
-    buffer = await readBuffer(res);
-    mime = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    buffer = await readBuffer(res, 25 * 1024 * 1024, signal);
   }
 
-  mime = sniffMime(buffer) || (mime && mime.startsWith('image/') ? mime : 'image/jpeg');
-  if (!buffer || buffer.length < 100) throw new ImageError('La imagen de Perchance llegó vacía', { code: 'no_image' });
+  mime = sniffMime(buffer);
+  if (!mime || !buffer || buffer.length < 100) throw new ImageError('Perchance no devolvió una imagen válida', { code: 'no_image' });
 
   return {
     buffer,
     mime,
     extension: extFor(mime),
-    seed: Number(json.seed) || null,
+    seed: json.seed == null ? null : Number(json.seed),
     width: Number(json.width) || null,
     height: Number(json.height) || null,
     prompt: typeof json.prompt === 'string' ? json.prompt : null,
@@ -377,15 +386,17 @@ async function readPerchanceImage(json, { timeoutMs = 25000 } = {}) {
 }
 
 /** Genera con la API interna de Perchance (la de perchance.org/apigen). */
-async function fromPerchance(opts, { timeoutMs = 30000 } = {}) {
+async function fromPerchance(opts, { timeoutMs = 30000, signal } = {}) {
   return enFila(async () => {
+    if (signal.aborted) throw signal.reason;
     const mintMs = Math.min(timeoutMs, 15000);
     // getAdCode sale de la caché (o de PERCHANCE_AD_CODE), así que no cuesta red.
-    let adCode = await getAdCode({ timeoutMs: mintMs });
-    let userKey = await getUserKey({ timeoutMs: mintMs });
+    let adCode = await getAdCode({ timeoutMs: mintMs, signal });
+    let userKey = await getUserKey({ timeoutMs: mintMs, signal, accessCode: adCode });
 
+    const seed = opts.seed < 0 ? crypto.randomInt(1, 1073741824) : opts.seed;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const requestId = `0.${Math.random().toString(36).slice(2)}`;
+      const requestId = `0.${crypto.randomInt(1000000000)}`;
       const query = new URLSearchParams({
         userKey,
         requestId,
@@ -396,7 +407,7 @@ async function fromPerchance(opts, { timeoutMs = 30000 } = {}) {
       const body = {
         prompt: opts.prompt,
         negativePrompt: opts.negativePrompt || '',
-        seed: opts.seed,
+        seed,
         resolution: opts.resolution,
         guidanceScale: opts.guidanceScale,
         channel: config.perchanceChannel || DEFAULT_CHANNEL,
@@ -407,7 +418,7 @@ async function fromPerchance(opts, { timeoutMs = 30000 } = {}) {
       };
       const res = await request(`${API.generate}?${query}`, {
         method: 'POST',
-        timeoutMs,
+        timeoutMs, signal,
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json, text/plain, */*',
@@ -417,7 +428,7 @@ async function fromPerchance(opts, { timeoutMs = 30000 } = {}) {
         body: JSON.stringify(body)
       });
       // La respuesta puede traer la imagen embebida (base64): margen amplio.
-      const text = await readText(res, 20 * 1024 * 1024);
+      const text = await readText(res, 20 * 1024 * 1024, signal);
       let json = null;
       try { json = JSON.parse(text); } catch (_) { /* Cloudflare devuelve HTML */ }
 
@@ -430,21 +441,24 @@ async function fromPerchance(opts, { timeoutMs = 30000 } = {}) {
       }
 
       const status = String(json.status || '');
-      if (status === 'success' || json.imageId || json.imageDataUrls) {
-        return await readPerchanceImage(json, { timeoutMs: Math.min(timeoutMs, 25000) });
+      if (status === 'success' || json.imageId || json.imageDataUrls || json.imageDataUrl) {
+        if (json.maybeNsfw === true) throw new ImageError('La imagen salió marcada como NSFW y no se sirve', { status: 422, code: 'nsfw', fatal: true });
+        const image = await readPerchanceImage(json, { timeoutMs: Math.min(timeoutMs, 25000), signal });
+        if (image.seed === null) image.seed = body.seed;
+        return image;
       }
       if (status === 'invalid_key') {
-        userKey = await getUserKey({ force: true, timeoutMs: mintMs });
+        userKey = await getUserKey({ force: true, timeoutMs: mintMs, signal, accessCode: adCode });
         adCode = state.adCode || adCode;
         continue;
       }
       if (status === 'invalid_access_code') {
-        adCode = await getAdCode({ force: true, timeoutMs: mintMs });
-        userKey = await getUserKey({ force: true, timeoutMs: mintMs });
+        adCode = await getAdCode({ force: true, timeoutMs: mintMs, signal });
+        userKey = await getUserKey({ force: true, timeoutMs: mintMs, signal, accessCode: adCode });
         continue;
       }
       if (status === 'waiting_for_prev_request_to_finish') {
-        await sleep(6000);
+        await sleep(6000, signal);
         continue;
       }
       if (status === 'failed_verification') {
@@ -466,7 +480,7 @@ async function fromPerchance(opts, { timeoutMs = 30000 } = {}) {
 }
 
 /** Respaldo: Pollinations (gratis y sin clave, con límite suave de 1 cada 15 s). */
-async function fromPollinations(opts, { timeoutMs = 30000 } = {}) {
+async function fromPollinations(opts, { timeoutMs = 30000, signal } = {}) {
   const [width, height] = opts.resolution.split('x').map(Number);
   const seed = opts.seed >= 0 ? opts.seed : Math.floor(Math.random() * 2147483647);
   const query = new URLSearchParams({
@@ -477,7 +491,7 @@ async function fromPollinations(opts, { timeoutMs = 30000 } = {}) {
     nologo: 'true'
   });
   const url = `${API.pollinations}/${encodeURIComponent(opts.prompt)}?${query}`;
-  const res = await request(url, { timeoutMs, headers: { Accept: 'image/*,*/*', Referer: 'https://pollinations.ai/' } });
+  const res = await request(url, { timeoutMs, signal, headers: { Accept: 'image/*,*/*', Referer: 'https://pollinations.ai/' } });
   if (!res.ok) {
     throw new ImageError(
       res.status === 429 ? 'Pollinations está limitando las peticiones' : `Pollinations respondió HTTP ${res.status}`,
@@ -488,7 +502,7 @@ async function fromPollinations(opts, { timeoutMs = 30000 } = {}) {
       }
     );
   }
-  const buffer = await readBuffer(res);
+  const buffer = await readBuffer(res, 25 * 1024 * 1024, signal);
   const mime = sniffMime(buffer);
   if (!mime) throw new ImageError('Pollinations no devolvió una imagen válida', { code: 'pollinations' });
   return {
@@ -565,7 +579,9 @@ async function generateImage(options = {}, deps = {}) {
     }
     try {
       const impl = (deps.impl && deps.impl[name]) || (name === 'pollinations' ? fromPollinations : fromPerchance);
-      const value = await impl(opts, { timeoutMs: Math.min(left, 30000) });
+      const timeoutMs = Math.min(left, 30000);
+      const signal = AbortSignal.timeout(timeoutMs);
+      const value = await withinSignal(Promise.resolve().then(() => impl(opts, { timeoutMs, signal })), signal);
       if (value.nsfw) {
         // Política del repo: nada para adultos. No se sirve ni se reintenta.
         throw new ImageError('La imagen salió marcada como NSFW y no se sirve', {
@@ -592,14 +608,14 @@ async function generateImage(options = {}, deps = {}) {
       return result;
     } catch (e) {
       if (e.fatal) throw e;
-      errors.push(`${name}: ${e.message}`);
+      errors.push(`${name}: ${e.message}${e.hint ? ` (${e.hint})` : ''}`);
     }
   }
 
   throw new ImageError('No se pudo generar la imagen', {
     status: 502,
     code: 'image',
-    hint: 'Probá de nuevo en unos segundos. Si Perchance está bloqueando al servidor, ?provider=pollinations suele andar.',
+    hint: errors.join(' · ') || 'Probá de nuevo en unos segundos.',
     details: errors
   });
 }

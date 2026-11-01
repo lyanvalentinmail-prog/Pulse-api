@@ -113,20 +113,23 @@ genera y baja la imagen. El `userKey` dura ~30 s y está atado a la IP, por eso 
 sesión se cachea y se renueva sola, y las generaciones pasan de a una.
 
 Cloudflare puede pedir Turnstile a IPs de datacenter (Render, Vercel, AWS). Si
-eso pasa —o si Perchance devuelve cualquier error— el endpoint cae a
-**Pollinations**, que también es gratis y sin clave, para no quedar muerto. El
-campo `provider` de la respuesta dice de dónde salió la imagen.
+eso pasa —o si Perchance devuelve otro error— el modo `auto` intenta
+**Pollinations**. Ambos proveedores pueden cambiar, exigir autenticación o
+bloquear al servidor, por lo que el respaldo no está garantizado. Para probar
+Perchance sin respaldo, usá `?provider=perchance&format=json`: si falla, el
+error indica la causa cuando el proveedor la informa. El campo `provider` de
+una respuesta exitosa identifica el proveedor que generó la imagen.
 
 | Variable | Para qué |
 |---|---|
-| `PERCHANCE_AD_CODE` | Salida de emergencia: un código fresco (64 hex) si el servidor queda bloqueado |
+| `PERCHANCE_AD_CODE` | Código de anuncios fresco (64 hex), opcional; no resuelve necesariamente un bloqueo de Cloudflare o Turnstile |
 | `PERCHANCE_CHANNEL` | Canal del generador (por defecto `ai-text-to-image-generator`) |
 | `PERCHANCE_CLIENT_VERSION` | Hash de versión del embed, si Perchance responde `client_update_required` |
 | `IMAGE_PROVIDER` | Proveedor por defecto: `auto` (por defecto), `perchance` o `pollinations` |
 
 Las imágenes repetidas (mismo prompt + mismas opciones) salen de una caché en
 memoria de 15 minutos, y lo que Perchance marque como NSFW se corta con **422**:
-Pulse API no devuelve contenido para adultos.
+esta comprobación depende de la señal del proveedor y no garantiza filtrar todo contenido para adultos.
 
 Las pruebas de esta parte no tocan la red (`node scripts/test-image.js`): los
 proveedores se inyectan y el protocolo se simula con un `fetch` de mentira.
