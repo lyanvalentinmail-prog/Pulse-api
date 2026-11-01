@@ -65,14 +65,17 @@ function findArray(node, keys, depth = 0) {
 function parsePinterestSearch(json, limit) {
   const results = (json && json.resource_response && json.resource_response.data
     && (json.resource_response.data.results || json.resource_response.data.pins)) || [];
-  return results
+  return (Array.isArray(results) ? results : [])
     .filter(pin => pin && (pin.images || pin.videos))
     .slice(0, limit)
     .map(pin => {
       const images = pin.images || {};
       const best = images.orig || images['736x'] || images['564x'] || images['474x'] || Object.values(images)[0] || {};
       const videoList = (pin.videos && pin.videos.video_list) || {};
-      const video = videoList.V_720P || videoList.V_HLSV4 || Object.values(videoList)[0] || null;
+      // HLS (.m3u8) no es un MP4 reproducible por nuestro proxy.
+      const video = Object.entries(videoList)
+        .filter(([key, v]) => !/HLS/i.test(key) && v && v.url && !/\.m3u8(?:[?#]|$)/i.test(v.url))
+        .sort(([a], [b]) => (b === 'V_720P') - (a === 'V_720P'))[0]?.[1] || null;
       return {
         id: pin.id || '',
         title: unescape(pin.title || pin.grid_title || pin.description || ''),
@@ -98,7 +101,7 @@ async function pinterest(query, limit) {
 // ================================================================== TikTok
 function parseTikTokSearch(json, limit, base = 'https://www.tikwm.com') {
   const videos = (json && json.data && (json.data.videos || json.data.list)) || [];
-  return videos.slice(0, limit).map(v => ({
+  return (Array.isArray(videos) ? videos : []).filter(v => v && (v.play || v.hdplay || v.cover || v.origin_cover)).slice(0, limit).map(v => ({
     id: v.video_id || v.id || '',
     title: unescape(v.title || ''),
     author: v.author ? `@${v.author.unique_id}` : '',
@@ -123,17 +126,17 @@ const PIPED = ['https://pipedapi.kavin.rocks', 'https://pipedapi.adminforge.de',
 const INVIDIOUS = ['https://inv.nadeko.net', 'https://invidious.nerdvpn.de'];
 
 function parsePipedSearch(json, limit) {
-  return (json.items || [])
-    .filter(i => i && (i.type === 'stream' || i.url))
+  return (Array.isArray(json?.items) ? json.items : [])
+    .filter(i => i && i.url && (!i.type || i.type === 'stream'))
     .slice(0, limit)
     .map(i => ({
-      id: String(i.url || '').replace('/watch?v=', ''),
+      id: String(i.url || '').replace(/^.*(?:v=|youtu\.be\/)/, '').split(/[&#?]/)[0],
       title: unescape(i.title || ''),
       author: unescape(i.uploaderName || ''),
       duration: Number(i.duration) || null,
       views: Number(i.views) || null,
       thumbnail: absolutize(i.thumbnail),
-      link: i.url ? `https://www.youtube.com${i.url.startsWith('/') ? '' : '/'}${i.url}` : ''
+      link: /^https?:\/\/(?:www\.|m\.)?youtube\.com\//i.test(i.url) ? i.url : `https://www.youtube.com${i.url.startsWith('/') ? '' : '/'}${i.url}`
     }));
 }
 
@@ -166,7 +169,10 @@ async function youtube(query, limit) {
   try {
     return (await firstFast([...piped, ...invidious], { timeoutMs: TIMEOUT + 500 })).value;
   } catch (e) {
-    const err = noResults('YouTube', 'Las instancias públicas de Piped/Invidious a veces se caen: reintentá en un rato');
+    const empty = e.details?.length && e.details.every(detail => detail.endsWith(': sin datos'));
+    const err = empty ? noResults('YouTube') : new Error('No se pudo consultar YouTube');
+    if (!empty) err.status = 502;
+    err.hint = 'Las instancias públicas de Piped/Invidious pueden estar caídas o no devolver resultados; reintentá en un rato';
     err.details = e.details;
     throw err;
   }
@@ -177,30 +183,21 @@ async function youtube(query, limit) {
 function parseBestHdWallpapers(html, limit, base = 'https://besthdwallpapers.org') {
   const items = [];
   const seen = new Set();
-  const link = /<a[^>]+href=["']([^"']+)["'][^>]*>\s*(<img[^>]+>)/gi;
+  const link = /<a[^>]+href=["']([^"']+)["'][^>]*>(?:(?!<\/a>)[\s\S]){0,2000}?(<img\b[^>]*>)/gi;
   let hit;
   while ((hit = link.exec(html)) && items.length < limit) {
     const tag = hit[2];
-    const src = (tag.match(/(?:src|data-src)=["']([^"']+)["']/i) || [])[1];
+    const src = (tag.match(/\bdata-src=["']([^"']+)["']/i) || tag.match(/\bsrc=["']([^"']+)["']/i) || [])[1];
     const alt = (tag.match(/alt=["']([^"']*)["']/i) || [])[1];
     const page = absolutize(hit[1], base);
     const image = absolutize(src, base);
-    if (!image || !/\.(jpe?g|png|webp)$/i.test(image) || seen.has(image)) continue;
+    if (!image || !/\.(jpe?g|png|webp)(?:[?#]|$)/i.test(image) || seen.has(image)) continue;
     seen.add(image);
     items.push({
       title: unescape(alt || metaContent(html, 'og:title') || '').trim(),
       image,
       page
     });
-  }
-  // Segunda pasada: algunas fichas sólo traen la imagen con su propia URL.
-  if (!items.length) {
-    const imgs = html.match(/https?:\/\/[^"'\s]+\.(?:jpe?g|png|webp)/gi) || [];
-    for (const image of imgs) {
-      if (items.length >= limit || seen.has(image)) continue;
-      seen.add(image);
-      items.push({ title: '', image, page: base });
-    }
   }
   return items;
 }
@@ -217,12 +214,14 @@ async function wallpapers(query, limit) {
 function parseMotionBgs(html, limit, base = 'https://motionbgs.com') {
   const items = [];
   const seen = new Set();
-  const card = /<a[^>]+href=["'](\/[^"'#?]+)["'][^>]*>[\s\S]{0,600}?<img[^>]+(?:src|data-src)=["']([^"']+)["']/gi;
+  const card = /<a[^>]+href=["'](\/[^"'#?]+)["'][^>]*>(?:(?!<\/a>)[\s\S]){0,600}?<img\b[^>]*>/gi;
   let hit;
   while ((hit = card.exec(html)) && items.length < limit) {
     const page = absolutize(hit[1], base);
-    const preview = absolutize(hit[2], base);
-    if (!page || page === base || seen.has(page)) continue;
+    const tag = hit[0].match(/<img\b[^>]*>/i)?.[0] || '';
+    const src = (tag.match(/\bdata-src=["']([^"']+)["']/i) || tag.match(/\bsrc=["']([^"']+)["']/i) || [])[1];
+    const preview = absolutize(src, base);
+    if (!page || !preview || page === base || seen.has(page)) continue;
     seen.add(page);
     items.push({
       title: unescape(page.split('/').filter(Boolean).pop() || '').replace(/-/g, ' '),

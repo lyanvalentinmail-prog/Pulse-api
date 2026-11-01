@@ -42,7 +42,10 @@ async function respond(req, res, data, { filename, directUrl }) {
     if (!directUrl) return sendError(res, 404, 'Esta fuente no tiene un archivo directo', 'Quitá ?direct=true para ver los datos');
     return proxyStream(req, res, directUrl, { filename: filename || 'pulse-media' });
   }
-  return sendSuccess(res, data);
+  if (!directUrl) return sendSuccess(res, data);
+  const query = new URLSearchParams({ url: String(q.url), direct: 'true' });
+  const playback = `${req.baseUrl}/${req.params.id}?${query}`;
+  return sendSuccess(res, { ...data, playback, downloadUrl: `${playback}&download=true` });
 }
 
 // --------------------------------------------------------------- TikTok
@@ -124,11 +127,14 @@ async function youtube(req, res, q, mode) {
 async function audio(req, res, q) {
   const url = E.normalizeUrl(q.url, { label: 'url' });
   if (!(truthy(q.direct) || truthy(q.dl))) {
+    const playback = `${req.baseUrl}/audio?url=${encodeURIComponent(url)}&direct=true`;
     return sendSuccess(res, {
       endpoint: 'audio',
       url,
       note: 'Agregá ?direct=true para bajar el MP3 convertido (ffmpeg)',
-      download: `${req.baseUrl}/audio?url=${encodeURIComponent(url)}&direct=true`
+      download: playback,
+      playback,
+      downloadUrl: `${playback}&download=true`
     });
   }
   const mp3 = await E.toMp3(url);

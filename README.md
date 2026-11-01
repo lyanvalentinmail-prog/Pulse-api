@@ -147,13 +147,18 @@ proveedores se inyectan y el protocolo se simula con un `fetch` de mentira.
 | `GET /descargas/youtubemp3` | Audio de YouTube en MP3. |
 | `GET /descargas/audio` | Extrae el audio de cualquier archivo remoto a MP3 (ffmpeg). |
 
-Todos reciben `?url=…` y aceptan `?direct=true` para bajar el archivo
+Todos reciben `?url=…` y aceptan `?direct=true` para reproducir el archivo
 (con `Range`, así el reproductor puede buscar dentro del video):
 
 ```bash
 curl -o video.mp4 "http://localhost:3000/descargas/tiktok?url=…&direct=true"
 curl "http://localhost:3000/descargas/pinterest?url=https://www.pinterest.com/pin/123/"
 ```
+
+La respuesta JSON incluye `playback` y `downloadUrl` cuando hay un medio disponible;
+ambos pasan por la API. En el probador web se muestra un reproductor o la imagen.
+`downloadUrl` solicita el archivo como adjunto. Si no hay preview (por ejemplo,
+en algunos enlaces de Spotify), no se inventa ningún archivo.
 
 Fuentes: tikwm (TikTok), HTML público (Pinterest/Instagram/Facebook), oEmbed +
 embed (Spotify), **cobalt** o instancias Piped (YouTube). Las fuentes pueden
@@ -193,7 +198,8 @@ y se procesan como máximo 60 segundos. Los servicios remotos pueden no estar di
 | `GET /busquedas/wallpapersv2` | motionbgs.com | fondos en movimiento |
 | `GET /busquedas/stickerly` | api.sticker.ly | stickers de WhatsApp |
 
-Todas usan `?q=` (obligatorio) y `&limit=` (1-30). Cada resultado con medio
+Todas usan `?q=` (obligatorio) y `&limit=` (1-30), con GET o POST JSON.
+También están disponibles bajo `/searcher/<endpoint>`. Cada resultado con medio
 incluye `playback` y `downloadUrl`: el segundo solicita el archivo como adjunto.
 El enlace vuelve a consultar la fuente y comprueba la identidad del resultado;
 si deja de aparecer, devuelve 404 en vez de descargar otro. En YouTube la

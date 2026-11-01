@@ -17,7 +17,7 @@ const E = require('../utils/extract');
 
 const router = express.Router();
 const jsonBody = express.json({ limit: '256kb' });
-const itemRef = item => crypto.createHash('sha256').update(String(item.id || item.link || item.page || item.video || item.image || item.preview || item.thumbnail || '')).digest('hex').slice(0, 24);
+const itemRef = item => crypto.createHash('sha256').update(String(item.id || item.link || item.page || item.video || item.image || item.preview || item.thumbnail || item.cover || '')).digest('hex').slice(0, 24);
 
 function params(req) {
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
@@ -54,13 +54,13 @@ async function handle(req, res) {
       const item = q.ref ? items.find(candidate => itemRef(candidate) === q.ref) : items[index];
       if (!item) return sendError(res, 404, 'El resultado ya no está disponible', 'Volvé a buscar para obtener enlaces actualizados');
       const url = id === 'youtube' ? (await E.youtube(item.link, 'video')).download :
-        (item.video || item.image || item.preview || item.thumbnail || '');
+        (item.video || item.image || item.preview || item.thumbnail || item.cover || '');
       if (!url) return sendError(res, 404, 'Este resultado no tiene un archivo disponible');
       return await proxyStream(req, res, url, { filename: `pulse-${id}-${index}` });
     }
     // Sólo se exponen enlaces a medios asociados al resultado, no un proxy de URLs arbitrarias.
     const enriched = items.map((item, index) => {
-      if (!(id === 'youtube' ? item.link : item.video || item.image || item.preview || item.thumbnail)) return item;
+      if (!(id === 'youtube' ? item.link : item.video || item.image || item.preview || item.thumbnail || item.cover)) return item;
       const queryString = new URLSearchParams({ q: query, limit: String(limit), index: String(index), ref: itemRef(item), direct: 'true' });
       const playback = `${req.baseUrl}/${id}?${queryString}`;
       return { ...item, playback, downloadUrl: `${playback}&download=true` };
