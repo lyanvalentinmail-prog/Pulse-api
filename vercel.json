@@ -6,7 +6,7 @@
     "api/index.js": {
       "maxDuration": 60,
       "memory": 1024,
-      "includeFiles": "{assets/**,public/**,node_modules/@ffmpeg-installer/**}"
+      "includeFiles": "{assets/**,public/**,node_modules/@ffmpeg-installer/**,node_modules/@tesseract.js-data/**,node_modules/tesseract.js-core/**}"
     }
   },
   "rewrites": [
