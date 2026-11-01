@@ -10,8 +10,7 @@ const { P, O, S } = require('./helpers');
 const GROUPS = [
   { id: 'brats', name: 'Brats', desc: 'La familia brat: stickers y videos' },
   { id: 'carteles', name: 'Carteles', desc: 'Personajes con carteles personalizables' },
-  { id: 'chats', name: 'Chats', desc: 'Diseños inspirados en aplicaciones de mensajería' },
-  { id: 'tipografia', name: 'Tipografía', desc: 'Diseños de texto' }
+  { id: 'chats', name: 'Chats', desc: 'Diseños inspirados en aplicaciones de mensajería' }
 ];
 
 module.exports = {
@@ -41,7 +40,13 @@ module.exports = {
       O('name', 'Pulse', 'Nombre'), O('text', 'Hola, uso Pulse', 'Información'), O('image', '', 'Foto de perfil'),
       O('username', '', 'Nombre de usuario'), O('phone', '', 'Teléfono'), O('link', '', 'Texto de enlaces')
     ] },
-    { id: 'ilove', group: 'tipografia', desc: 'Diseño i <3 con palabra curvada personalizable.', media: 'image', params: [P('text', 'money', 'Palabra o frase')] },
+    { id: 'bratv2', name: 'bratV2', group: 'brats', desc: 'bratV2: texto totalmente editable con efecto esférico.', media: 'image', params: [
+      P('text', 'i <3\nmoney', 'Texto completo (admite saltos de línea y emojis)'),
+      O('bg', 'ffffff', 'Color de fondo hex sin #'),
+      O('color', '', 'Color del texto hex (vacío = negro)'),
+      O('canvas.size', '736', 'Lado del PNG en píxeles (200 - 2000)'),
+      O('uppercase', 'false', 'true = convertir el texto a mayúsculas')
+    ] },
     { id: 'brat', group: 'brats', desc: 'Sticker brat como el de Drive: texto grande y condensado, fondo blanco y emojis a color.', media: 'image', params: [
       P('text', 'Hehe this is brat 💸', 'Texto del sticker'),
       O('bg', 'ffffff', 'Color de fondo hex sin #'),

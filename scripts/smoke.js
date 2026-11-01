@@ -115,7 +115,7 @@ async function main() {
     ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 28);
     ok('/docs trae las nueve categorías', json.categories.length === 9);
     ok('/docs: canvas con brat y bratvideo',
-      ['brat', 'bratvideo', 'cartelanime1', 'cartelbob', 'whatsappquote', 'ilove'].every(id => json.categories.find(c => c.id === 'canvas').endpoints.some(e => e.id === id)));
+      ['brat', 'bratvideo', 'cartelanime1', 'cartelbob', 'whatsappquote', 'bratv2'].every(id => json.categories.find(c => c.id === 'canvas').endpoints.some(e => e.id === id)));
 
     const ping = await get(port, '/ping');
     const pong = JSON.parse(ping.body.toString());
@@ -130,7 +130,7 @@ async function main() {
     ok('GET /canvas/bratvideo → MP4', video.status === 200 && video.type.includes('video/mp4') && isMp4(video.body));
 
     // Prueba cada referencia y que el texto modifique el PNG.
-    for (const id of ['cartelanime1', 'cartelanime2', 'cartelanime3', 'cartelanime4', 'cartelbob', 'ilove', 'whatsappquote', 'imessagequote', 'imessagetyping', 'perfilchat']) {
+    for (const id of ['cartelanime1', 'cartelanime2', 'cartelanime3', 'cartelanime4', 'cartelbob', 'bratv2', 'whatsappquote', 'imessagequote', 'imessagetyping', 'perfilchat']) {
       const first = await get(port, `/canvas/${id}?text=Hola`);
       const second = await get(port, `/canvas/${id}?text=Distinto&download=true`);
       ok(`GET /canvas/${id} personalizable y descargable`, first.status === 200 && isPng(first.body) && second.status === 200 && isPng(second.body) && !first.body.equals(second.body) && /attachment/.test(second.headers['content-disposition']));
@@ -299,7 +299,7 @@ async function main() {
     ok('GET /downloader → redirect /descargas', alias.status === 302 && alias.headers.location === '/descargas');
 
     // ---------- Motor ----------
-    ok('Generadores de canvas disponibles', ['brat', 'cartelbob', 'whatsappquote', 'ilove'].every(id => CANVAS_IDS.includes(id)), CANVAS_IDS.join(','));
+    ok('Generadores de canvas disponibles', ['brat', 'cartelbob', 'whatsappquote', 'bratv2'].every(id => CANVAS_IDS.includes(id)), CANVAS_IDS.join(','));
     ok('Video disponible: bratvideo', VIDEO_IDS.join(',') === 'bratvideo');
     ok('GENERATORS sin claves de más', Object.keys(GENERATORS).every(id => CANVAS_IDS.includes(id)));
   } finally {

@@ -6,14 +6,15 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node scripts/smoke.js && node scripts/test-extract.js && node scripts/test-image.js && node scripts/test-brat.js && node scripts/test-canvas-references.js",
+    "test": "node scripts/smoke.js && node scripts/test-extract.js && node scripts/test-image.js && node scripts/test-brat.js && node scripts/test-canvas-references.js && node scripts/test-bratv2.js",
     "check": "node scripts/validate-catalog.js",
     "test:smoke": "node scripts/smoke.js",
     "test:brat": "node scripts/test-brat.js",
     "lint": "eslint src scripts api public/js eslint.config.js",
     "test:extract": "node scripts/test-extract.js",
     "test:image": "node scripts/test-image.js",
-    "test:canvas-references": "node scripts/test-canvas-references.js"
+    "test:canvas-references": "node scripts/test-canvas-references.js",
+    "test:bratv2": "node scripts/test-bratv2.js"
   },
   "engines": {
     "node": "24.x"

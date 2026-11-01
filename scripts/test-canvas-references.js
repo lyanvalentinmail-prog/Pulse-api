@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { generateCanvas } = require('../src/canvas');
+const { love } = require('../src/canvas/generators/_referencias');
 const { sharp } = require('../src/utils/image');
 const dir = path.join(__dirname, '../assets/templates/referencias');
 
@@ -66,11 +67,11 @@ const different = async (a, b, box) => assert.notDeepEqual(await raw(a, box), aw
   }
   console.log('✓ Perfil: datos editables y avatar reemplazable');
 
-  const love = await generateCanvas('ilove', { text: 'money' });
-  const customLove = await generateCanvas('ilove', { text: 'cats' });
-  await sameArea(love, path.join(dir, 'ilove.jpg'));
-  await sameArea(love, customLove, { left: 0, top: 0, width: 736, height: 375 });
-  await different(love, customLove, { left: 0, top: 380, width: 736, height: 300 });
+  const originalLove = await love({ text: 'money' });
+  const customLove = await love({ text: 'cats' });
+  await sameArea(originalLove, path.join(dir, 'ilove.jpg'));
+  await sameArea(originalLove, customLove, { left: 0, top: 0, width: 736, height: 375 });
+  await different(originalLove, customLove, { left: 0, top: 380, width: 736, height: 300 });
   console.log('✓ i <3: referencia original y texto deformado');
 
   for (const id of ['cartelanime1', 'cartelanime2', 'cartelanime3', 'cartelanime4', 'cartelbob']) {

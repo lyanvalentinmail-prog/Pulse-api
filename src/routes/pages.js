@@ -126,6 +126,7 @@ router.get('/docs', (req, res) => {
   for (const c of CATEGORIES) {
     tags[c.id] = c.endpoints.map(e => ({
       id: e.id,
+      ...(e.name ? { name: e.name } : {}),
       method: 'GET',
       path: `/${c.id}/${e.id}`,
       description: e.desc,
@@ -182,7 +183,7 @@ router.get(CATEGORY_PAGES, (req, res) => {
     <div class="row" data-endpoint="${esc(e.id)}" id="row-${esc(e.id)}">
       <span class="row-icon">${I.terminal}</span>
       <div class="info">
-        <h3>${esc(e.id.toUpperCase())}</h3>
+        <h3>${esc(e.name || e.id.toUpperCase())}</h3>
         <div class="meta"><span class="get">GET</span><span class="sep">·</span>${e.params.length} params<span class="sep">·</span>${esc(paramsLine)}</div>
       </div>
       <button type="button" class="btn" data-test-btn="${esc(e.id)}" aria-expanded="false" aria-controls="tester-${esc(e.id)}">Test</button>
@@ -203,6 +204,7 @@ router.get(CATEGORY_PAGES, (req, res) => {
     category: cat.id,
     endpoints: cat.endpoints.map(e => ({
       id: e.id,
+      name: e.name || null,
       desc: e.desc || '',
       media: e.media || null,
       params: e.params.map(p => ({

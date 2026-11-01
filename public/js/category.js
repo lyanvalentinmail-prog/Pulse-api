@@ -440,7 +440,7 @@
     if (!pageTitle) return;
     if (open) {
       if (!pageTitle.dataset.original) pageTitle.dataset.original = pageTitle.innerHTML;
-      pageTitle.textContent = String(tester.dataset.endpoint || '').toUpperCase();
+      pageTitle.textContent = tester.dataset.name || String(tester.dataset.endpoint || '').toUpperCase();
       if (pageSync) {
         if (!pageSync.dataset.original) pageSync.dataset.original = pageSync.innerHTML;
         pageSync.textContent = `Endpoint ready // /${tester.dataset.category}/${tester.dataset.endpoint}`;
@@ -489,6 +489,7 @@
     tester.id = `tester-${id}`;
     tester.dataset.category = data.category;
     tester.dataset.endpoint = id;
+    if (ep.name) tester.dataset.name = ep.name;
     tester.setAttribute('aria-hidden', 'true');
     if ('inert' in tester) tester.inert = true;
 

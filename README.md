@@ -201,7 +201,7 @@ curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
 | `GET /canvas/cartelbob` | Cartel de Bob Esponja. | `image/png` |
 | `GET /canvas/whatsappquote`, `imessagequote`, `imessagetyping` | Diseños de mensajes de chat. | `image/png` |
 | `GET /canvas/perfilchat` | Perfil de chat con nombre, texto y foto opcional. | `image/png` |
-| `GET /canvas/ilove` | Diseño tipográfico inspirado en i <3. | `image/png` |
+| `GET /canvas/bratV2` | Brat esférico con texto completamente editable. | `image/png` |
 
 Los carteles aceptan `text` o `image` (usar `mode=image` para la imagen);
 los chats admiten `text` y algunos `quote` o `reply`. `whatsappquote` acepta
@@ -211,13 +211,14 @@ la variante con cita. `imessagetyping` permite cambiar `reply`, `time` y
 y `link`. Las plantillas de chat conservan la composición de las referencias,
 pero se eliminaron los datos personales originales y se sustituyen por los
 parámetros proporcionados. En los chats, los textos se ajustan al espacio; si
-no caben, la API responde con un error 400 en vez de cortarlos. El texto
-personalizado de `ilove` aproxima la deformación de la referencia original. Todos aceptan
+no caben, la API responde con un error 400 en vez de cortarlos. `bratV2` acepta texto libre, saltos de línea y emojis, con `bg`, `color` y
+`canvas.size` opcionales; `/canvas/ilove` sigue disponible para enlaces antiguos
+con su comportamiento anterior. Todos aceptan
 `download=true` para descargar el PNG.
 
 ### Parámetros
 
-Parámetros principales de brat y bratvideo:
+Parámetros principales de brat, bratV2 y bratvideo:
 
 | Parámetro | Ejemplo | Qué hace |
 |---|---|---|
@@ -236,6 +237,9 @@ completitud pero **no** en la web, para no llenar el probador.
 ```bash
 # PNG
 curl -o brat.png "http://localhost:3000/canvas/brat?text=hehe%20this%20is%20brat%20%F0%9F%92%B8"
+
+# Brat esférico, con dos líneas
+curl -G -o bratv2.png --data-urlencode $'text=Hola\nMundo 💚' "http://localhost:3000/canvas/bratV2"
 
 # PNG con estilo
 curl -o brat.png "http://localhost:3000/canvas/brat?text=hola&bg=8ace00&color=ff2d55"
