@@ -48,9 +48,10 @@ async function respond(req, res, data, { filename, directUrl }) {
 // --------------------------------------------------------------- TikTok
 async function tiktok(req, res, q) {
   const data = await E.tiktok(q.url);
-  return respond(req, res, { ...data, endpoint: 'tiktok' }, {
-    directUrl: data.video,
-    filename: `pulse-tiktok-${data.id || 'video'}.mp4`
+  const direct = data.video || data.images?.[0];
+  return respond(req, res, { ...data, endpoint: 'tiktok', type: data.video ? 'video' : 'image' }, {
+    directUrl: direct,
+    filename: `pulse-tiktok-${data.id || 'media'}${data.video ? '.mp4' : ''}`
   });
 }
 
@@ -99,6 +100,10 @@ async function spotify(req, res, q) {
 async function youtube(req, res, q, mode) {
   const data = await E.youtube(q.url, mode);
   const direct = data.download || (mode === 'audio' ? data.audio : data.video);
+  if (mode === 'audio' && data.source.startsWith('piped:') && (truthy(q.direct) || truthy(q.dl))) {
+    const mp3 = await E.toMp3(direct);
+    return sendMedia(res, mp3, 'audio/mpeg', `pulse-youtube-${data.id}.mp3`);
+  }
   return respond(req, res, {
     id: data.id,
     mode,
