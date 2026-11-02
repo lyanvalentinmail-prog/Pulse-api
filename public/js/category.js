@@ -506,7 +506,8 @@
     if ('inert' in tester) tester.inert = true;
 
     const fieldOf = p => {
-      const gallery = data.category === 'canvas' && isImageParam(p.name);
+      // Galería (subir foto) en las categorías que procesan imágenes.
+      const gallery = ['canvas', 'imagenes'].includes(data.category) && isImageParam(p.name);
       const up = gallery
         ? `<label class="upload"><span class="upload-label">Galería</span><input type="file" accept="image/*" multiple aria-label="Elegir imágenes para ${esc(p.name)}" data-upload-for="${esc(p.name)}"></label>`
         : '';

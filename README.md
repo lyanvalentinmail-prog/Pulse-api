@@ -4,9 +4,9 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **44 endpoints** publicados:
-> Canvas (12), IA (2), Descargas (11), Búsquedas (11) y Audios (8). Anime, Imágenes,
-> Herramientas y Juegos siguen vacías, listas para llenar.
+> **Estado actual:** 9 routers montados y **51 endpoints** publicados:
+> Canvas (12), IA (2), Descargas (11), Búsquedas (11), Imágenes (7) y Audios (8).
+> Anime, Herramientas y Juegos siguen vacías, listas para llenar.
 
 ```
 GET /home                      → dashboard con las carpetas
@@ -43,7 +43,7 @@ Todos los endpoints JSON responden con el mismo sobre:
 | `ia` | `/ia` | **2** | Modelos y utilidades de inteligencia artificial |
 | `descargas` | `/descargas` | **11** | Videos, música, archivos y apps (MediaFire, Play Store, CapCut) |
 | `busquedas` | `/busquedas` | **11** | Buscadores: Pinterest, TikTok, YouTube, fondos, Wikipedia, tiendas y música |
-| `imagenes` | `/imagenes` | — | Imágenes, stickers y fondos |
+| `imagenes` | `/imagenes` | **7** | Efectos de imagen: filtros y overlays |
 | `herramientas` | `/herramientas` | — | Utilidades: QR, hash, base64, texto |
 | `juegos` | `/juegos` | — | Juegos rápidos por chat |
 | `audios` | `/audios` | **8** | Efectos de audio |
@@ -186,6 +186,41 @@ tener tu propia instancia:
 ```bash
 COBALT_API_URL=https://cobalt.tu-dominio.com
 ```
+
+## 🖼️ Imagenes — 7
+
+`GET|POST /imagenes/{grayscale,pixel,sepia,blur,invert,darkness,gay}` procesa una
+foto y devuelve la imagen resultante (`image/jpeg` por defecto), con soporte de
+`Range` y `download=true`, igual que los canvas.
+
+| Endpoint | Qué hace | Extra |
+|---|---|---|
+| `grayscale` | Blanco y negro. | — |
+| `pixel` | Pixelado en bloques cuadrados. | `size` (1 - 100, por defecto 12) |
+| `sepia` | Tono sepia clásico (matriz normalizada, sin recortar blancos). | — |
+| `blur` | Desenfoque gaussiano. | `blur` (0.3 - 100, por defecto 8) |
+| `invert` | Negativo. | — |
+| `darkness` | Oscurece la foto. | `level` (1 - 95; negativo aclara) |
+| `gay` | Overlay de la bandera arcoíris sobre la foto. | `opacity`, `mode`, `direction` |
+
+La imagen se pasa por `url` (link directo, `/upload/…` o `data:`) o en el cuerpo
+del POST con el botón **Galería** del probador (ahí no hace falta `url`). Todos
+aceptan `format=jpeg|png|webp` (JPEG aplana la transparencia sobre blanco).
+
+```bash
+# filtros
+curl -o gris.jpg "http://localhost:3000/imagenes/grayscale?url=https://picsum.photos/800/600"
+curl -o pixel.png "http://localhost:3000/imagenes/pixel?url=…&size=24&format=png"
+
+# overlay arcoíris: franjas horizontales, verticales o diagonales
+curl -o gay.jpg "http://localhost:3000/imagenes/gay?url=…&opacity=55&mode=flag&direction=horizontal"
+curl -o glow.jpg "http://localhost:3000/imagenes/gay?url=…&mode=glow&opacity=70"
+```
+
+`gay` mezcla con `source-over` (alfa real): la foto sigue viéndose debajo y los
+colores de la bandera no salen apagados. `mode=flag` pinta las seis franjas y
+`mode=glow` aplica un degradé diagonal. Los valores fuera de rango responden
+**400** con la pista del rango válido, no se recortan en silencio.
 
 ## 🎵 Audios — 8
 
