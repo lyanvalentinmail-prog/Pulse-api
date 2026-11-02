@@ -9,6 +9,9 @@
 //   · Spotify    → oEmbed (metadatos) + embed (preview de 30 s)
 //   · YouTube    → cobalt si está configurado, si no instancias Piped
 //   · Audio      → ffmpeg sobre un archivo remoto (mp3)
+//   · MediaFire  → HTML de la página (botón #downloadButton)
+//   · Play Store → package de la app resuelto con la API de Aptoide (APK)
+//   · CapCut     → HTML/JSON del template (videoUrl del MP4 sin marca)
 //
 // Los parsers están exportados aparte (parse*) para poder probarlos sin red.
 const fs = require('fs');
@@ -16,7 +19,7 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 const config = require('../config');
-const { fetchJson, fetchText, fetchBuffer, postJson, firstFast, UA_DESKTOP, UA_MOBILE } = require('./http');
+const { fetchJson, fetchText, fetchBuffer, fetchWithTimeout, postJson, firstFast, UA_DESKTOP, UA_MOBILE } = require('./http');
 
 const TIMEOUT = 15000;
 
@@ -337,6 +340,224 @@ async function youtube(rawUrl, mode = 'video') {
   }
 }
 
+// ================================================================ MediaFire
+/**
+ * MediaFire entrega el enlace directo en el botón `#downloadButton` (o en un
+ * `window.location.href` para enlaces con clave). El nombre y el tamaño están
+ * en la ficha del archivo.
+ */
+function parseMediaFire(html) {
+  const text = String(html || '');
+  const direct = firstMatch(text, [
+    /id=["']downloadButton["'][^>]*href=["']([^"']+)["']/i,
+    /href=["']([^"']+)["'][^>]*id=["']downloadButton["']/i,
+    /href=["'](https:\/\/download[^"']*mediafire\.com\/[^"']+)["']/i,
+    /window\.location\.href\s*=\s*['"](https?:\/\/[^'"]+)['"]/i
+  ]);
+  const filename = unescape(firstMatch(text, [
+    /<div[^>]*class=["'][^"']*filename[^"']*["'][^>]*>([^<]{1,200})</i,
+    /<h1[^>]*>([^<]{1,200})<\/h1>/i
+  ]) || metaContent(text, 'og:title') || '').trim();
+  const size = unescape(firstMatch(text, [
+    /<span[^>]*class=["'][^"']*details[^"']*["'][^>]*>([^<]{1,80})</i,
+    /\(([\d.]+\s*(?:KB|MB|GB|TB))\)/i
+  ]) || '').trim();
+  return {
+    filename,
+    size,
+    thumbnail: absolutize(metaContent(text, 'og:image')),
+    direct: absolutize(direct, 'https://www.mediafire.com')
+  };
+}
+
+async function mediafire(rawUrl) {
+  const url = normalizeUrl(rawUrl, { hosts: ['mediafire.com'], label: 'url' });
+  const html = await fetchText(url, {
+    publicOnly: true, timeoutMs: TIMEOUT,
+    headers: { Accept: 'text/html', 'Accept-Language': 'es-UY,es;q=0.9,en;q=0.8' }
+  });
+  const data = parseMediaFire(html);
+  if (!data.direct) {
+    throw notFound('MediaFire no entregó el enlace de descarga',
+      'Puede ser un archivo eliminado, privado o con contraseña; abrilo en el navegador para confirmarlo');
+  }
+  return { source: 'mediafire', page: url, ...data };
+}
+
+// =============================================================== Play Store
+/** package de una URL de Play Store (o de un `com.app` suelto). */
+function parsePlayStorePackage(raw) {
+  const text = String(raw || '').trim();
+  const fromUrl = text.match(/[?&]id=([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)/);
+  const bare = text.match(/^([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)$/);
+  return (fromUrl || bare || [])[1] || '';
+}
+
+/** Comprueba que un enlace devuelva un archivo (y no un HTML de error). */
+async function probeArchive(url) {
+  const res = await fetchWithTimeout(url, {
+    headers: { 'User-Agent': UA_DESKTOP, Range: 'bytes=0-0' }, publicOnly: true
+  }, TIMEOUT);
+  const type = (res.headers.get('content-type') || '').toLowerCase();
+  res.body?.cancel().catch(() => {});
+  if (!res.ok && res.status !== 206) return null;
+  if (/^text\/html/i.test(type)) return null;
+  return { type };
+}
+
+/** Busca el APK en Aptoide por package exacto (Play no permite bajar APK). */
+async function aptoideApk(pkg) {
+  const producers = ['https://ws75.aptoide.com', 'https://ws2.aptoide.com'].map(base => [base, async () => {
+    const json = await fetchJson(`${base}/api/7/apps/search?query=${encodeURIComponent(pkg)}&limit=50`, { timeoutMs: TIMEOUT });
+    const list = Array.isArray(json && json.list) ? json.list
+      : Array.isArray(json && json.datasets && json.datasets.search && json.datasets.search.data && json.datasets.search.data.list)
+        ? json.datasets.search.data.list : [];
+    const node = list.find(app => app && app.package === pkg);
+    const file = (node && node.file) || {};
+    const apk = absolutize(file.path || file.path_alt || '');
+    if (!apk) return null;
+    const icon = typeof node.icon === 'string' ? node.icon : (node.icon && node.icon.url) || '';
+    return {
+      source: `aptoide:${new URL(base).hostname}`,
+      package: pkg,
+      title: unescape(node.name || ''),
+      version: file.vername || '',
+      size: Number(file.filesize) || null,
+      developer: unescape((node.store && node.store.name) || ''),
+      icon: absolutize(icon),
+      download: apk
+    };
+  }]);
+  return (await firstFast(producers, { timeoutMs: TIMEOUT + 500 })).value;
+}
+
+/**
+ * Descarga de una app de Play Store. Play no ofrece APK directo sin cuenta:
+ * se resuelve el paquete con mirrors públicos (Aptoide y, si falla, APKPure).
+ */
+async function playstoreDownload(raw) {
+  const text = String(raw || '').trim();
+  if (!text) throw badRequest('Falta el parámetro url', 'Pasá el enlace de Play Store o el package: ?url=com.whatsapp');
+  if (/^https?:\/\//i.test(text) || /^play\.google\.com/i.test(text)) {
+    const url = normalizeUrl(text, { hosts: ['play.google.com'], label: 'url' });
+    if (!/\/store\/apps\/details/i.test(url)) {
+      throw badRequest('El enlace debe ser de la ficha de una app', 'Ejemplo: https://play.google.com/store/apps/details?id=com.whatsapp');
+    }
+  }
+  const pkg = parsePlayStorePackage(text);
+  if (!pkg) throw badRequest('No pude leer el paquete de la app', 'Pasá el enlace de Play Store o el package (com.whatsapp)');
+  try {
+    return await aptoideApk(pkg);
+  } catch (e) {
+    const mirror = `https://d.apkpure.com/b/APK/${encodeURIComponent(pkg)}?version=latest`;
+    const probe = await probeArchive(mirror).catch(() => null);
+    if (!probe) {
+      const err = new Error('Play Store no ofrece APK directo y los mirrors públicos no respondieron');
+      err.status = 502;
+      err.hint = 'Reintentá en un rato o buscá la app con /busquedas/aptoide';
+      err.details = e.details;
+      throw err;
+    }
+    return {
+      source: 'apkpure',
+      package: pkg,
+      title: pkg,
+      version: '',
+      size: null,
+      developer: '',
+      icon: '',
+      download: mirror,
+      note: 'APK desde un mirror público: Play Store no permite descargar APK sin cuenta.'
+    };
+  }
+}
+
+// =================================================================== CapCut
+const CAPCUT_ID = [
+  /\/template-detail\/(\d+)/i,
+  /[?&]template_id=(\d+)/i,
+  /\/t\/([A-Za-z0-9]{5,})/i
+];
+
+/** ID numérico de template (o código corto de /t/…) de un enlace de CapCut. */
+function parseCapCutId(raw) {
+  const text = String(raw || '');
+  for (const re of CAPCUT_ID) {
+    const hit = text.match(re);
+    if (hit && hit[1]) return hit[1];
+  }
+  return '';
+}
+
+/**
+ * CapCut sirve el MP4 del template en sus páginas (`videoUrl`, `playUrl`…) y en
+ * su endpoint JSON de detalle. Se aceptan HTML y objetos.
+ */
+function parseCapCut(payload) {
+  const text = typeof payload === 'string' ? payload : JSON.stringify(payload || {});
+  const video = firstMatch(text, [
+    /"videoUrl"\s*:\s*"([^"]+)"/i,
+    /"video_url"\s*:\s*"([^"]+)"/i,
+    /"playUrl"\s*:\s*"([^"]+)"/i,
+    /"play_url"\s*:\s*"([^"]+)"/i,
+    /"videoUri"\s*:\s*"([^"]+)"/i,
+    /(https?:\/\/[^"'\s\\]+\.mp4[^"'\s\\]*)/i
+  ]);
+  const cover = firstMatch(text, [
+    /"coverUrl"\s*:\s*"([^"]+)"/i,
+    /"cover_url"\s*:\s*"([^"]+)"/i,
+    /"posterUrl"\s*:\s*"([^"]+)"/i
+  ]) || metaContent(text, 'og:image');
+  const title = unescape(metaContent(text, 'og:title')
+    || firstMatch(text, [/"templateTitle"\s*:\s*"([^"]+)"/i, /"title"\s*:\s*"([^"]{1,200})"/i])
+    || (text.match(/<title[^>]*>([^<]{1,200})<\/title>/i) || [])[1] || '').trim();
+  const author = unescape(firstMatch(text, [
+    /"authorName"\s*:\s*"([^"]+)"/i,
+    /"author"\s*:\s*\{[^{}]*"name"\s*:\s*"([^"]+)"/i,
+    /"nickname"\s*:\s*"([^"]+)"/i,
+    /"userName"\s*:\s*"([^"]+)"/i
+  ])).trim();
+  const videoClean = absolutize(video, 'https://www.capcut.com');
+  // Se descartan imágenes/CSS que aparezcan en el mismo JSON: sólo sirve un video.
+  const esVideo = /^https:\/\//i.test(videoClean) && !/\.(?:jpe?g|png|webp|gif|css|js)(?:[?#]|$)/i.test(videoClean);
+  return {
+    video: esVideo ? videoClean : '',
+    cover: absolutize(cover, 'https://www.capcut.com'),
+    title,
+    author
+  };
+}
+
+async function capcut(rawUrl) {
+  const url = normalizeUrl(rawUrl, { hosts: ['capcut.com'], label: 'url' });
+  if (!/\/template-detail\//i.test(url) && !/[?&]template_id=/i.test(url) && !/\/t\//i.test(url)) {
+    throw badRequest('El enlace no parece de un template de CapCut',
+      'Ejemplo: https://www.capcut.com/template-detail/7123456789…');
+  }
+  const headers = { Accept: 'text/html', 'Accept-Language': 'es-UY,es;q=0.9,en;q=0.8' };
+  const producers = [];
+  const id = parseCapCutId(url);
+  if (/^\d+$/.test(id)) {
+    producers.push(['detail', () => fetchText(`https://www.capcut.com/template-detail/${id}`, { timeoutMs: TIMEOUT, headers })]);
+    producers.push(['api', () => fetchJson(`https://www.capcut.com/api/template/detail?template_id=${id}`, { timeoutMs: TIMEOUT, headers: { Accept: 'application/json' } })]);
+  }
+  producers.push(['page', () => fetchText(url, { timeoutMs: TIMEOUT, headers })]);
+  const attempts = producers.map(([label, run]) => [label, async () => {
+    const payload = await run();
+    const data = parseCapCut(payload);
+    return data.video ? { source: label, ...data } : null;
+  }]);
+  try {
+    const result = (await firstFast(attempts, { timeoutMs: TIMEOUT + 500 })).value;
+    return { page: url, ...result };
+  } catch (e) {
+    const err = notFound('CapCut no entregó el video del template',
+      'CapCut cambia su API a menudo y puede pedir captcha al servidor; probá con el enlace público del template o más tarde');
+    err.details = e.details;
+    throw err;
+  }
+}
+
 // =================================================================== Audio
 function ffmpegPath() {
   try { return require('@ffmpeg-installer/ffmpeg').path; } catch (_) { return 'ffmpeg'; }
@@ -370,9 +591,11 @@ async function toMp3(remoteUrl, { maxBytes = 60 * 1024 * 1024 } = {}) {
 module.exports = {
   // resolvedores (red)
   tiktok, pinterest, instagram, facebook, spotify, youtube, toMp3,
+  mediafire, playstoreDownload, capcut,
   // parsers (puros, testeables sin red)
   parseTikTok, parsePinterest, parseInstagram, parseFacebook, parseSpotify,
   parseYouTubeId, parsePipedStreams, parseCobalt,
+  parseMediaFire, parsePlayStorePackage, parseCapCut, parseCapCutId,
   // utilidades
   normalizeUrl, absolutize, unescape, metaContent
 };
