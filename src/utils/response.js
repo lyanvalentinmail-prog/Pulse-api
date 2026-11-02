@@ -120,14 +120,19 @@ async function proxyStream(req, res, upstreamUrl, { filename = 'media', headers 
     throw new Error(`La fuente respondió HTTP ${up.status}`);
   }
   const type = (up.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim().toLowerCase();
-  if (!/^(?:image\/(?!svg\+xml)|video\/|audio\/|application\/octet-stream$)/i.test(type)) {
+  // Multimedia + archivos que devuelven las descargas (APK, ZIP, RAR, 7Z, PDF).
+  const ALLOWED_TYPES = /^(?:(?:image|video|audio)\/[a-z0-9.+-]+|application\/(?:octet-stream|zip|x-zip-compressed|x-rar-compressed|vnd\.rar|x-7z-compressed|pdf|vnd\.android\.package-archive))$/i;
+  if (!ALLOWED_TYPES.test(type) || type === 'image/svg+xml') {
     up.body?.cancel().catch(() => {});
     throw new Error('La fuente no devolvió un archivo multimedia válido');
   }
   // Cuando el llamador no conoce la extensión, usar el MIME real del archivo.
   if (!/\.[a-z0-9]{2,5}$/i.test(filename)) {
     const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif',
-      'video/mp4': 'mp4', 'video/webm': 'webm', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg' }[type];
+      'video/mp4': 'mp4', 'video/webm': 'webm', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
+      'application/zip': 'zip', 'application/x-zip-compressed': 'zip', 'application/x-rar-compressed': 'rar',
+      'application/vnd.rar': 'rar', 'application/x-7z-compressed': '7z', 'application/pdf': 'pdf',
+      'application/vnd.android.package-archive': 'apk' }[type];
     if (ext) filename += `.${ext}`;
   }
   res.status(up.status === 206 ? 206 : 200);

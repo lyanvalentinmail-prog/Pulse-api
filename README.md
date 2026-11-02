@@ -4,8 +4,8 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **36 endpoints** publicados:
-> Canvas (12), IA (2), Descargas (8), Búsquedas (6) y Audios (8). Anime, Imágenes,
+> **Estado actual:** 9 routers montados y **44 endpoints** publicados:
+> Canvas (12), IA (2), Descargas (11), Búsquedas (11) y Audios (8). Anime, Imágenes,
 > Herramientas y Juegos siguen vacías, listas para llenar.
 
 ```
@@ -41,8 +41,8 @@ Todos los endpoints JSON responden con el mismo sobre:
 | `anime` | `/anime` | — | Waifus, personajes y búsqueda de anime |
 | `canvas` | `/canvas` | **12** | Memes e imágenes generadas al vuelo |
 | `ia` | `/ia` | **2** | Modelos y utilidades de inteligencia artificial |
-| `descargas` | `/descargas` | **8** | Videos y música de redes sociales |
-| `busquedas` | `/busquedas` | **6** | Buscadores: Pinterest, TikTok, YouTube, fondos |
+| `descargas` | `/descargas` | **11** | Videos, música, archivos y apps (MediaFire, Play Store, CapCut) |
+| `busquedas` | `/busquedas` | **11** | Buscadores: Pinterest, TikTok, YouTube, fondos, Wikipedia, tiendas y música |
 | `imagenes` | `/imagenes` | — | Imágenes, stickers y fondos |
 | `herramientas` | `/herramientas` | — | Utilidades: QR, hash, base64, texto |
 | `juegos` | `/juegos` | — | Juegos rápidos por chat |
@@ -134,7 +134,7 @@ esta comprobación depende de la señal del proveedor y no garantiza filtrar tod
 Las pruebas de esta parte no tocan la red (`node scripts/test-image.js`): los
 proveedores se inyectan y el protocolo se simula con un `fetch` de mentira.
 
-## 📥 Descargas — 8
+## 📥 Descargas — 11
 
 | Endpoint | Qué hace |
 |---|---|
@@ -146,8 +146,12 @@ proveedores se inyectan y el protocolo se simula con un `fetch` de mentira.
 | `GET /descargas/youtubemp4` | Video de YouTube en MP4. |
 | `GET /descargas/youtubemp3` | Audio de YouTube en MP3. |
 | `GET /descargas/audio` | Extrae el audio de cualquier archivo remoto a MP3 (ffmpeg). |
+| `GET /descargas/mediafire` | Archivo de MediaFire: enlace directo, nombre y tamaño. |
+| `GET /descargas/playstore` | APK de una app de Google Play (por enlace o `package`). |
+| `GET /descargas/capcut` | MP4 del template de CapCut, sin marca de agua. |
 
-Todos reciben `?url=…` y aceptan `?direct=true` para reproducir el archivo
+Todos reciben `?url=…` (Play Store acepta además `?package=com.app`) y aceptan
+`?direct=true` para reproducir el archivo
 (con `Range`, así el reproductor puede buscar dentro del video):
 
 ```bash
@@ -160,8 +164,18 @@ ambos pasan por la API. En el probador web se muestra un reproductor o la imagen
 `downloadUrl` solicita el archivo como adjunto. Si no hay preview (por ejemplo,
 en algunos enlaces de Spotify), no se inventa ningún archivo.
 
+**MediaFire** se resuelve leyendo el botón `#downloadButton` de la página (el
+enlace resultante se sirve con `Referer` de MediaFire). **Play Store** no permite
+descargar APK sin cuenta, así que el paquete de la app se resuelve con mirrors
+públicos: primero Aptoide y, si no lo tiene, APKPure (se comprueba que el enlace
+devuelva un archivo antes de ofrecerlo). **CapCut** lee el `videoUrl` del template
+desde su página o su endpoint de detalle; CapCut cambia esa API a menudo y puede
+pedir captcha al servidor. Los APK/ZIP/RAR/7Z/PDF de estas fuentes se devuelven
+tal cual cuando la descarga directa lo permite.
+
 Fuentes: tikwm (TikTok), HTML público (Pinterest/Instagram/Facebook), oEmbed +
-embed (Spotify), **cobalt** o instancias Piped (YouTube). Las fuentes pueden
+embed (Spotify), **cobalt** o instancias Piped (YouTube), HTML (MediaFire/CapCut)
+y Aptoide/APKPure (APK de Play Store). Las fuentes pueden
 estar caídas, requerir sesión o
 bloquear servidores; el acceso a contenido privado no está garantizado. Spotify
 sólo ofrece el preview cuando está disponible. `direct=true` reproduce el
@@ -187,7 +201,7 @@ curl -o efecto.mp3 "http://localhost:3000/audios/echo?url=https%3A%2F%2Fexample.
 Sólo se aceptan URLs públicas; el archivo de entrada tiene un límite de 10 MB
 y se procesan como máximo 60 segundos. Los servicios remotos pueden no estar disponibles.
 
-## 🔎 Busquedas — 6
+## 🔎 Busquedas — 11
 
 | Endpoint | Fuente | Devuelve |
 |---|---|---|
@@ -197,8 +211,25 @@ y se procesan como máximo 60 segundos. Los servicios remotos pueden no estar di
 | `GET /busquedas/wallpapers` | besthdwallpapers.org | fondos en tamaño original |
 | `GET /busquedas/wallpapersv2` | motionbgs.com | fondos en movimiento |
 | `GET /busquedas/stickerly` | api.sticker.ly | stickers y vistas previas de packs públicos |
+| `GET /busquedas/wiki` | MediaWiki API | artículos: resumen, miniatura y enlace |
+| `GET /busquedas/playstore` | play.google.com | apps con desarrollador, icono y nota |
+| `GET /busquedas/aptoide` | API de Aptoide | apps con versión, tamaño y enlace APK |
+| `GET /busquedas/appstore` | iTunes Search | apps con icono, precio y enlace |
+| `GET /busquedas/play` | Deezer / iTunes | canciones con audio reproducible |
 
 Todas usan `?q=` (obligatorio) y `&limit=` (1-30), con GET o POST JSON.
+`wiki` acepta `&lang=` (es, en, pt…), las tiendas aceptan `&country=` (us, es, ar…)
+y `playstore` también `&lang=`. **`play` es la excepción**: usa `?name=` (obligatorio)
+y `?author=` (opcional) y devuelve el `audio` reproducible de cada canción:
+
+```bash
+curl "http://localhost:3000/busquedas/play?name=Bohemian%20Rhapsody&author=Queen"
+curl "http://localhost:3000/busquedas/wiki?q=Eniac&lang=es&limit=3"
+curl "http://localhost:3000/busquedas/appstore?q=whatsapp&country=es"
+```
+
+Deezer y la iTunes Search API entregan **previews de 30 s** sin token; no son la
+canción completa. Si la primera fuente no responde se usa la otra.
 También están disponibles bajo `/searcher/<endpoint>`. Pinterest usa una sesión
 anónima; TikTok usa TikWM y Sticker.ly consulta la API móvil de búsqueda de packs.
 La API móvil de Sticker.ly utilizada aquí emplea HTTP sin cifrar, por lo que la consulta
@@ -215,6 +246,10 @@ miniaturas o previews, no un archivo original.
 curl "http://localhost:3000/busquedas/wallpapers?q=naruto&limit=5"
 curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
 ```
+
+Para las fuentes con parámetros extra (`lang`, `country`, `author`), esos valores
+viajan en el enlace `playback`: así la reproducción repite exactamente la misma
+búsqueda y no devuelve otro resultado.
 
 ## 🎨 Canvas — 12
 

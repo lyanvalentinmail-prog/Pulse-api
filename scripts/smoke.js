@@ -107,12 +107,12 @@ async function main() {
     }
 
     const t = totals();
-    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 36, `routers=${t.routers} endpoints=${t.endpoints}`);
+    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 44, `routers=${t.routers} endpoints=${t.endpoints}`);
 
     // ---------- Catálogo JSON ----------
     const docs = await get(port, '/docs');
     const json = JSON.parse(docs.body.toString());
-    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 36);
+    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 44);
     ok('/docs trae las nueve categorías', json.categories.length === 9);
     ok('/docs: canvas con brat y bratvideo',
       ['brat', 'bratvideo', 'cartelanime1', 'cartelbob', 'whatsappquote', 'bratv2'].every(id => json.categories.find(c => c.id === 'canvas').endpoints.some(e => e.id === id)));
@@ -151,8 +151,8 @@ async function main() {
 
     // ---------- Descargas ----------
     const descargas = json.categories.find(c => c.id === 'descargas').endpoints.map(e => e.id);
-    ok('/docs: descargas con 8 endpoints',
-      descargas.join(',') === 'tiktok,pinterest,instagram,facebook,spotify,youtubemp4,youtubemp3,audio', descargas.join(','));
+    ok('/docs: descargas con 11 endpoints',
+      descargas.join(',') === 'tiktok,pinterest,instagram,facebook,spotify,youtubemp4,youtubemp3,audio,mediafire,playstore,capcut', descargas.join(','));
     const sinUrl = await get(port, '/descargas/tiktok');
     ok('GET /descargas/tiktok sin url → 400', sinUrl.status === 400 && JSON.parse(sinUrl.body.toString()).status === false);
     const urlMala = await get(port, '/descargas/tiktok?url=https://example.com/x');
@@ -164,8 +164,8 @@ async function main() {
 
     // ---------- Busquedas ----------
     const busquedas = json.categories.find(c => c.id === 'busquedas').endpoints.map(e => e.id);
-    ok('/docs: busquedas con 6 buscadores',
-      busquedas.join(',') === 'pinterest,tiktok,youtube,wallpapers,wallpapersv2,stickerly', busquedas.join(','));
+    ok('/docs: busquedas con 11 buscadores',
+      busquedas.join(',') === 'pinterest,tiktok,youtube,wallpapers,wallpapersv2,stickerly,wiki,playstore,aptoide,appstore,play', busquedas.join(','));
     // Fuente simulada: se comprueba cada enlace directo, Range, descarga y
     // rechazo de destinos privados sin depender de terceros en CI.
     const S = require('../src/utils/search');
@@ -193,8 +193,8 @@ async function main() {
         const saved = await get(port, path + '&download=true');
         ok('Descargas: reproducción y archivo adjunto', preview.status === 206 && /inline/.test(preview.headers['content-disposition']) && saved.status === 200 && /attachment/.test(saved.headers['content-disposition']));
       } finally { E.tiktok = oldDownload; }
-      // Los ocho handlers comparten reproducción con Range y descarga.
-      const originals = Object.fromEntries(['tiktok', 'pinterest', 'instagram', 'facebook', 'spotify', 'youtube', 'toMp3'].map(k => [k, E[k]]));
+      // Todos los handlers comparten reproducción con Range y descarga.
+      const originals = Object.fromEntries(['tiktok', 'pinterest', 'instagram', 'facebook', 'spotify', 'youtube', 'toMp3', 'mediafire', 'playstoreDownload', 'capcut'].map(k => [k, E[k]]));
       try {
         E.tiktok = async () => ({ id: '1', video: 'https://media.example/video.mp4' });
         E.pinterest = async () => ({ type: 'image', image: 'https://media.example/foto.jpg' });
@@ -203,11 +203,17 @@ async function main() {
         E.spotify = async () => ({ title: 'Audio', preview: 'https://media.example/audio.mp3' });
         E.youtube = async (_url, mode) => ({ id: 'abcdefghijk', source: 'piped:fixture', download: `https://media.example/${mode}`, mode });
         E.toMp3 = async () => Buffer.from('ID3test-mp3');
+        E.mediafire = async () => ({ direct: 'https://media.example/archivo.zip', filename: 'archivo.zip' });
+        E.playstoreDownload = async () => ({ package: 'com.test', title: 'Test', download: 'https://media.example/app.apk' });
+        E.capcut = async () => ({ video: 'https://media.example/video.mp4', title: 'Template' });
         const samples = [
           ['tiktok', 'https://www.tiktok.com/@u/video/1'], ['pinterest', 'https://pinterest.com/pin/1'],
           ['instagram', 'https://instagram.com/p/abcde'], ['facebook', 'https://facebook.com/video/1'],
           ['spotify', 'https://open.spotify.com/track/123'], ['youtubemp4', 'https://youtube.com/watch?v=abcdefghijk'],
-          ['youtubemp3', 'https://youtube.com/watch?v=abcdefghijk'], ['audio', 'https://media.example/video.mp4']
+          ['youtubemp3', 'https://youtube.com/watch?v=abcdefghijk'], ['audio', 'https://media.example/video.mp4'],
+          ['mediafire', 'https://www.mediafire.com/file/abc/x.zip/file'],
+          ['playstore', 'https://play.google.com/store/apps/details?id=com.test'],
+          ['capcut', 'https://www.capcut.com/template-detail/123']
         ];
         for (const [id, url] of samples) {
           const target = `/descargas/${id}?url=${encodeURIComponent(url)}&direct=true`;
@@ -221,7 +227,7 @@ async function main() {
         E.spotify = async () => ({ title: 'Sin preview', preview: '' });
         ok('Spotify: sin preview responde 404, no inventa audio', (await get(port, '/descargas/spotify?url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F123&direct=true')).status === 404);
       } finally { Object.assign(E, originals); }
-      const searchOriginals = Object.fromEntries(['pinterest', 'tiktok', 'youtube', 'wallpapers', 'wallpapersV2', 'stickerly'].map(k => [k, S[k]]));
+      const searchOriginals = Object.fromEntries(['pinterest', 'tiktok', 'youtube', 'wallpapers', 'wallpapersV2', 'stickerly', 'wiki', 'playstore', 'aptoide', 'appstore', 'play'].map(k => [k, S[k]]));
       const youtubeOriginal = E.youtube;
       try {
         const fixtures = [
@@ -230,7 +236,12 @@ async function main() {
           ['youtube', 'youtube', { id: 'abcdefghijk', link: 'https://youtube.com/watch?v=abcdefghijk' }],
           ['wallpapers', 'wallpapers', { page: 'https://example.com/1', image: 'https://media.example/foto.jpg' }],
           ['wallpapersv2', 'wallpapersV2', { page: 'https://example.com/2', preview: 'https://media.example/foto.jpg' }],
-          ['stickerly', 'stickerly', { id: 's', image: 'https://media.example/sticker.png' }]
+          ['stickerly', 'stickerly', { id: 's', image: 'https://media.example/sticker.png' }],
+          ['wiki', 'wiki', { id: 'w', image: 'https://media.example/wiki.jpg', link: 'https://es.wikipedia.org/wiki/X' }],
+          ['playstore', 'playstore', { id: 'com.test', image: 'https://media.example/icon.png', link: 'https://play.google.com/store/apps/details?id=com.test' }],
+          ['aptoide', 'aptoide', { id: 'com.test', image: 'https://media.example/icon.png', apk: 'https://media.example/app.apk' }],
+          ['appstore', 'appstore', { id: '1', image: 'https://media.example/icon.png', link: 'https://apps.apple.com/app/id1' }],
+          ['play', 'play', { id: '9', audio: 'https://media.example/song.mp3', link: 'https://deezer.com/track/9' }]
         ];
         E.youtube = async () => ({ download: 'https://media.example/video.mp4' });
         for (const [route, fn, item] of fixtures) {

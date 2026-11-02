@@ -8,6 +8,9 @@
 //   GET /descargas/youtubemp4  ?url=…
 //   GET /descargas/youtubemp3  ?url=…
 //   GET /descargas/audio       ?url=…        (cualquier archivo → MP3)
+//   GET /descargas/mediafire   ?url=…        (enlace directo del archivo)
+//   GET /descargas/playstore   ?url=|?package=…   (APK de una app)
+//   GET /descargas/capcut      ?url=…        (MP4 de un template)
 //
 // Todos aceptan `?direct=true` para recibir el archivo (con Range) en vez del JSON.
 const express = require('express');
@@ -36,14 +39,14 @@ function fail(res, e) {
 }
 
 /** Respuesta común de un resolvedor: JSON o el archivo directo. */
-async function respond(req, res, data, { filename, directUrl }) {
+async function respond(req, res, data, { filename, directUrl, headers = {} }) {
   const q = params(req);
   if (truthy(q.direct) || truthy(q.dl)) {
     if (!directUrl) return sendError(res, 404, 'Esta fuente no tiene un archivo directo', 'Quitá ?direct=true para ver los datos');
-    return proxyStream(req, res, directUrl, { filename: filename || 'pulse-media' });
+    return proxyStream(req, res, directUrl, { filename: filename || 'pulse-media', headers });
   }
   if (!directUrl) return sendSuccess(res, data);
-  const query = new URLSearchParams({ url: String(q.url), direct: 'true' });
+  const query = new URLSearchParams({ url: String(q.url || q.package), direct: 'true' });
   const playback = `${req.baseUrl}/${req.params.id}?${query}`;
   return sendSuccess(res, { ...data, playback, downloadUrl: `${playback}&download=true` });
 }
@@ -141,6 +144,39 @@ async function audio(req, res, q) {
   return sendMedia(res, mp3, 'audio/mpeg', 'pulse-audio.mp3');
 }
 
+// -------------------------------------------------------------- MediaFire
+async function mediafire(req, res, q) {
+  const data = await E.mediafire(q.url);
+  return respond(req, res, { ...data, endpoint: 'mediafire' }, {
+    directUrl: data.direct,
+    filename: data.filename || 'pulse-mediafire',
+    headers: { Referer: 'https://www.mediafire.com/' }
+  });
+}
+
+// ------------------------------------------------------------- Play Store
+async function playstore(req, res, q) {
+  const data = await E.playstoreDownload(q.url || q.package);
+  const name = String(data.title || data.package || 'pulse-playstore').replace(/[^\w.-]+/g, '-');
+  return respond(req, res, {
+    ...data,
+    endpoint: 'playstore',
+    note: data.note || 'El APK se resuelve con mirrors públicos: Google Play no permite descargar APK sin cuenta.'
+  }, {
+    directUrl: data.download,
+    filename: `${name}.apk`
+  });
+}
+
+// ----------------------------------------------------------------- CapCut
+async function capcut(req, res, q) {
+  const data = await E.capcut(q.url);
+  return respond(req, res, { ...data, endpoint: 'capcut' }, {
+    directUrl: data.video,
+    filename: `pulse-capcut-${data.title ? String(data.title).replace(/[^\w.-]+/g, '-').slice(0, 40) : 'video'}.mp4`
+  });
+}
+
 // ---------------------------------------------------------------- router
 const HANDLERS = {
   tiktok,
@@ -150,7 +186,29 @@ const HANDLERS = {
   spotify,
   youtubemp3: (req, res, q) => youtube(req, res, q, 'audio'),
   youtubemp4: (req, res, q) => youtube(req, res, q, 'video'),
-  audio
+  audio,
+  mediafire,
+  playstore,
+  capcut
+};
+
+// Fuentes que aceptan otra entrada además de `url` (por ejemplo `package`).
+const INPUT = {
+  playstore: q => q.url || q.package
+};
+
+const EXAMPLE = {
+  tiktok: 'https://www.tiktok.com/@user/video/123',
+  pinterest: 'https://www.pinterest.com/pin/902338475390432363/',
+  instagram: 'https://www.instagram.com/reel/ABC123/',
+  facebook: 'https://www.facebook.com/watch/?v=1234567890',
+  spotify: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+  youtubemp3: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  youtubemp4: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  audio: 'https://ejemplo.com/video.mp4',
+  mediafire: 'https://www.mediafire.com/file/abc123/archivo.zip/file',
+  playstore: 'https://play.google.com/store/apps/details?id=com.whatsapp',
+  capcut: 'https://www.capcut.com/template-detail/7123456789012345678'
 };
 
 async function handle(req, res) {
@@ -161,8 +219,10 @@ async function handle(req, res) {
       `Disponibles: ${Object.keys(HANDLERS).join(', ')} — mirá /descargas`);
   }
   const q = params(req);
-  if (!String(q.url || '').trim()) {
-    return sendError(res, 400, 'Falta el parámetro url', 'Ejemplo: /descargas/tiktok?url=https://www.tiktok.com/@user/video/123');
+  const input = INPUT[id] ? INPUT[id](q) : q.url;
+  if (!String(input || '').trim()) {
+    return sendError(res, 400, INPUT[id] ? 'Falta el parámetro url o package' : 'Falta el parámetro url',
+      `Ejemplo: /descargas/${id}?url=${EXAMPLE[id] || EXAMPLE.tiktok}`);
   }
   try {
     return await fn(req, res, q);

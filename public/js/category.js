@@ -380,19 +380,29 @@
         const r = json.result || {};
         const isDownload = tester.dataset.category === 'descargas';
         const direct = r.playback || withParams(path, 'direct=true');
+        // mediafire y playstore devuelven archivos (ZIP/APK): botón de descarga,
+        // sin reproductor que no sabría mostrarlos.
+        const esArchivo = ['mediafire', 'playstore'].includes(tester.dataset.endpoint);
         const mediaType = r.type === 'image' ? 'image' :
-          ['spotify', 'youtubemp3', 'audio'].includes(tester.dataset.endpoint) ? 'audio' : 'video';
-        const hasMedia = isDownload && (r.video || r.videoHd || r.image || r.preview || r.download || r.audio || (Array.isArray(r.images) && r.images.length) || tester.dataset.endpoint === 'audio');
-        const playable = hasMedia && mediaType !== 'image' ? { type: mediaType, url: direct } : findPlayable(json);
+          ['spotify', 'youtubemp3', 'audio'].includes(tester.dataset.endpoint) ? 'audio' :
+            esArchivo ? 'file' : 'video';
+        const hasMedia = isDownload && (r.video || r.videoHd || r.image || r.preview || r.download || r.direct || r.audio || (Array.isArray(r.images) && r.images.length) || tester.dataset.endpoint === 'audio');
+        const playable = hasMedia && mediaType !== 'image' && mediaType !== 'file' ? { type: mediaType, url: direct } : findPlayable(json);
         const preview = hasMedia && mediaType === 'image' ? direct : findPreviewImage(json);
         const archivo = hasMedia ? { href: r.downloadUrl || withParams(direct, 'download=true') } : archivoDe(json, playable ? `${playable.type}/` : 'image/', tester.dataset.endpoint);
         const nombreJson = `${tester.dataset.endpoint}.json`;
-        const nombreArch = `${tester.dataset.endpoint}.${mediaType === 'audio' ? 'mp3' : mediaType === 'video' ? 'mp4' : 'jpg'}`;
+        const extension = mediaType === 'audio' ? 'mp3' : mediaType === 'image' ? 'jpg'
+          : mediaType === 'file' ? (tester.dataset.endpoint === 'playstore' ? 'apk' : 'zip') : 'mp4';
+        const nombreArch = `${tester.dataset.endpoint}.${extension}`;
         const btn = archivo ? btnDescargar(archivo.href, nombreArch, archivo.externo) : btnDescargarTexto(nombreJson);
         const cards = Array.isArray(r.items) ? r.items.map((item, index) => {
           const photo = item.image || item.preview || item.cover || item.thumbnail;
           const video = !!item.video || (tester.dataset.endpoint === 'youtube' && !!item.link) || item.type === 'video';
-          const media = item.playback && video ? playerHtml({ type: 'video', url: item.playback }) : photo ? `<div class="preview"><img src="${esc(item.playback || photo)}" alt=""></div>` : '';
+          const audio = !video && !!item.audio;
+          // Los resultados de `play` se escuchan en el mismo panel.
+          const media = item.playback && video ? playerHtml({ type: 'video', url: item.playback })
+            : item.playback && audio ? `<div class="preview" style="padding:10px"><audio src="${esc(item.playback)}" controls preload="metadata" style="width:100%"></audio></div>`
+              : photo ? `<div class="preview"><img src="${esc(item.playback || photo)}" alt=""></div>` : '';
           return `<div class="search-result"><h4>${esc(item.title || item.name || `Resultado ${index + 1}`)}</h4>${media}${item.downloadUrl ? btnDescargar(item.downloadUrl, `resultado-${index + 1}`) : ''}${esUrl(item.link || item.page) ? ` <a href="${esc(item.link || item.page)}" target="_blank" rel="noopener">Ver original</a>` : ''}</div>`;
         }).join('') : '';
         result.innerHTML = `

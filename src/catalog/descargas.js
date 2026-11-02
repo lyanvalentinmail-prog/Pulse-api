@@ -11,7 +11,7 @@ const url = (example, desc) => P('url', example, desc);
 module.exports = {
   id: 'descargas',
   name: 'DESCARGAS',
-  desc: 'Videos y música de redes sociales, sin marca de agua',
+  desc: 'Videos, música, archivos y apps de redes sociales y tiendas, sin marca de agua',
   endpoints: [
     { id: 'tiktok', desc: 'Video de TikTok sin marca de agua (MP4 + MP3 del audio).', media: 'video', params: [
       url('https://www.tiktok.com/@nasa/video/7300000000000000000', 'Enlace del video'),
@@ -43,6 +43,18 @@ module.exports = {
     ] },
     { id: 'audio', desc: 'Extrae el audio de cualquier archivo remoto y lo devuelve en MP3 (ffmpeg).', media: 'audio', params: [
       P('url', 'https://ejemplo.com/video.mp4', 'Enlace directo al archivo de video o audio'),
+      direct()
+    ] },
+    { id: 'mediafire', desc: 'Archivo de MediaFire: enlace directo, nombre y tamaño.', media: 'json', params: [
+      url('https://www.mediafire.com/file/abc123/archivo.zip/file', 'Enlace del archivo de MediaFire'),
+      direct()
+    ] },
+    { id: 'playstore', desc: 'APK de una app de Google Play, resuelto con mirrors públicos (Play no permite APK directo).', media: 'json', params: [
+      P('url', 'https://play.google.com/store/apps/details?id=com.whatsapp', 'Enlace de la ficha en Play Store (o el package com.whatsapp)'),
+      direct()
+    ] },
+    { id: 'capcut', desc: 'Video MP4 de un template de CapCut, sin marca de agua.', media: 'video', params: [
+      url('https://www.capcut.com/template-detail/7123456789012345678', 'Enlace del template de CapCut'),
       direct()
     ] }
   ]
