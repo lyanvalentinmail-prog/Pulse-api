@@ -27,7 +27,8 @@ const ROUTES = {
   imagenes: 'imagenes.js',
   herramientas: 'herramientas.js',
   juegos: 'juegos.js',
-  audios: 'audios.js'
+  audios: 'audios.js',
+  random: 'random.js'
 };
 
 const errors = [];

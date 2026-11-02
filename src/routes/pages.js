@@ -30,7 +30,7 @@ function layout({ title, body, script = '', bare = false }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#efefef">
 <title>${esc(title)}</title>
-<meta name="description" content="Pulse API — Anime, Canvas, IA, Descargas, Busquedas, Imagenes, Herramientas, Juegos y Audios. Sin token.">
+<meta name="description" content="Pulse API — Anime, Canvas, IA, Descargas, Busquedas, Imagenes, Herramientas, Juegos, Audios y Random. Sin token.">
 <link rel="icon" href="/img/banner.jpg">
 <link rel="stylesheet" href="/css/style.css">
 </head>

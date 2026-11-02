@@ -91,11 +91,11 @@ async function main() {
 
     // ---------- Categorías ----------
     const ids = CATEGORIES.map(c => c.id);
-    ok('Nueve routers: anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios',
-      JSON.stringify(ids) === JSON.stringify(['anime', 'canvas', 'ia', 'descargas', 'busquedas', 'imagenes', 'herramientas', 'juegos', 'audios']),
+    ok('Diez routers: anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios, random',
+      JSON.stringify(ids) === JSON.stringify(['anime', 'canvas', 'ia', 'descargas', 'busquedas', 'imagenes', 'herramientas', 'juegos', 'audios', 'random']),
       ids.join(', '));
-    ok('Publican endpoints: canvas, ia, descargas, busquedas, imagenes y audios',
-      CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(',') === 'canvas,ia,descargas,busquedas,imagenes,audios',
+    ok('Publican endpoints: anime, canvas, ia, descargas, busquedas, imagenes, herramientas, audios y random',
+      CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(',') === 'anime,canvas,ia,descargas,busquedas,imagenes,herramientas,audios,random',
       CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(','));
 
     for (const cat of CATEGORIES) {
@@ -107,19 +107,19 @@ async function main() {
     }
 
     const t = totals();
-    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 51, `routers=${t.routers} endpoints=${t.endpoints}`);
+    ok('Contadores del catálogo', t.routers === 10 && t.endpoints === 76, `routers=${t.routers} endpoints=${t.endpoints}`);
 
     // ---------- Catálogo JSON ----------
     const docs = await get(port, '/docs');
     const json = JSON.parse(docs.body.toString());
-    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 51);
-    ok('/docs trae las nueve categorías', json.categories.length === 9);
+    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 10 && json.endpoints === 76);
+    ok('/docs trae las diez categorías', json.categories.length === 10);
     ok('/docs: canvas con brat y bratvideo',
       ['brat', 'bratvideo', 'cartelanime1', 'cartelbob', 'whatsappquote', 'bratv2'].every(id => json.categories.find(c => c.id === 'canvas').endpoints.some(e => e.id === id)));
 
     const ping = await get(port, '/ping');
     const pong = JSON.parse(ping.body.toString());
-    ok('GET /ping', ping.status === 200 && pong.result.pong === true && pong.result.routers === 9);
+    ok('GET /ping', ping.status === 200 && pong.result.pong === true && pong.result.routers === 10);
 
     // ---------- Endpoints publicados ----------
     const png = await get(port, '/canvas/brat?text=hola%20pulse');
@@ -144,7 +144,7 @@ async function main() {
     const missingCanvas = await get(port, '/canvas/quotly');
     ok('GET /canvas/quotly → 404 (retirado)', missingCanvas.status === 404);
 
-    for (const r of ['/tools/emoji', '/anime/neko', '/reactions/hug', '/downloader/ytmp4', '/searcher/yt']) {
+    for (const r of ['/tools/emoji', '/anime/personaje', '/reactions/hug', '/downloader/ytmp4', '/searcher/yt']) {
       const res = await get(port, r);
       ok(`GET ${r} → 404 (router eliminado)`, res.status === 404);
     }

@@ -13,11 +13,12 @@
 //   src/catalog/imagenes.js      → IMAGENES      (7)   GET /imagenes/:id  (efectos de imagen)
 //   src/catalog/herramientas.js  → HERRAMIENTAS  (0)   GET /herramientas/:id
 //   src/catalog/juegos.js        → JUEGOS        (0)   GET /juegos/:id
-//   src/catalog/audios.js        → AUDIOS        (0)   GET /audios/:id
+//   src/catalog/audios.js        → AUDIOS        (8)   GET /audios/:id
+//   src/catalog/random.js        → RANDOM        (11)  GET /random/:id  (animales al azar)
 //
-// Los nueve routers están montados en src/server.js. Publican endpoints CANVAS,
-// IA, DESCARGAS, BUSQUEDAS, IMAGENES y AUDIOS; ANIME, HERRAMIENTAS y JUEGOS
-// siguen listas para llenar.
+// Los diez routers están montados en src/server.js. Publican endpoints ANIME,
+// CANVAS, IA, DESCARGAS, BUSQUEDAS, IMAGENES, HERRAMIENTAS, AUDIOS y RANDOM;
+// JUEGOS sigue lista para llenar.
 //
 // ➕ AGREGAR UN ENDPOINT: se hace en 2 pasos.
 //    1) el código que responde, en src/routes/<categoría>.js
@@ -39,10 +40,11 @@ const imagenes = require('./imagenes');
 const herramientas = require('./herramientas');
 const juegos = require('./juegos');
 const audios = require('./audios');
+const random = require('./random');
 const { P, O, S, AV, AV2, textStyle, photoStyle } = require('./helpers');
 
 // /home ordena las carpetas por nombre; este orden se conserva en /docs.
-const CATEGORIES = [anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios];
+const CATEGORIES = [anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios, random];
 
 // ---------- Parámetros "avanzados" (se ocultan tras un botón en la web) ----------
 // Los endpoints muestran 4 o 5 parámetros básicos; el resto se pliega. Los
