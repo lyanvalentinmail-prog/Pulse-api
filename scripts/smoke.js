@@ -94,8 +94,8 @@ async function main() {
     ok('Nueve routers: anime, canvas, ia, descargas, busquedas, imagenes, herramientas, juegos, audios',
       JSON.stringify(ids) === JSON.stringify(['anime', 'canvas', 'ia', 'descargas', 'busquedas', 'imagenes', 'herramientas', 'juegos', 'audios']),
       ids.join(', '));
-    ok('Publican endpoints: canvas, ia, descargas, busquedas y audios',
-      CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(',') === 'canvas,ia,descargas,busquedas,audios',
+    ok('Publican endpoints: canvas, ia, descargas, busquedas, imagenes y audios',
+      CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(',') === 'canvas,ia,descargas,busquedas,imagenes,audios',
       CATEGORIES.filter(c => c.endpoints.length).map(c => c.id).join(','));
 
     for (const cat of CATEGORIES) {
@@ -107,12 +107,12 @@ async function main() {
     }
 
     const t = totals();
-    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 44, `routers=${t.routers} endpoints=${t.endpoints}`);
+    ok('Contadores del catálogo', t.routers === 9 && t.endpoints === 51, `routers=${t.routers} endpoints=${t.endpoints}`);
 
     // ---------- Catálogo JSON ----------
     const docs = await get(port, '/docs');
     const json = JSON.parse(docs.body.toString());
-    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 44);
+    ok('GET /docs', docs.status === 200 && json.status === true && json.routers === 9 && json.endpoints === 51);
     ok('/docs trae las nueve categorías', json.categories.length === 9);
     ok('/docs: canvas con brat y bratvideo',
       ['brat', 'bratvideo', 'cartelanime1', 'cartelbob', 'whatsappquote', 'bratv2'].every(id => json.categories.find(c => c.id === 'canvas').endpoints.some(e => e.id === id)));
