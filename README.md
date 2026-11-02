@@ -4,9 +4,9 @@ REST API pública, **sin token**, hecha con Express. La web (`/home`) es un dash
 de carpetas tipo Drive: cada carpeta es una categoría y dentro están sus endpoints con
 un probador (`Test`) que ejecuta la petición desde el navegador.
 
-> **Estado actual:** 9 routers montados y **51 endpoints** publicados:
-> Canvas (12), IA (2), Descargas (11), Búsquedas (11), Imágenes (7) y Audios (8).
-> Anime, Herramientas y Juegos siguen vacías, listas para llenar.
+> **Estado actual:** 10 routers montados y **76 endpoints** publicados:
+> Anime (7), Canvas (12), IA (2), Descargas (11), Búsquedas (11), Imágenes (7),
+> Herramientas (7), Audios (8) y Random (11). Sólo Juegos sigue vacía.
 
 ```
 GET /home                      → dashboard con las carpetas
@@ -34,19 +34,20 @@ Todos los endpoints JSON responden con el mismo sobre:
 - Los canvas devuelven la imagen (`image/png`) o el video (`video/mp4`) directamente.
 - CORS abierto (`*`), sin claves ni tokens.
 
-## Las 9 categorías
+## Las 10 categorías
 
 | Carpeta | Ruta | Endpoints hoy | Para qué |
 |---|---|---|---|
-| `anime` | `/anime` | — | Waifus, personajes y búsqueda de anime |
+| `anime` | `/anime` | **7** | Anime, manga, Pokémon y personajes (sin NSFW) |
 | `canvas` | `/canvas` | **12** | Memes e imágenes generadas al vuelo |
 | `ia` | `/ia` | **2** | Modelos y utilidades de inteligencia artificial |
 | `descargas` | `/descargas` | **11** | Videos, música, archivos y apps (MediaFire, Play Store, CapCut) |
 | `busquedas` | `/busquedas` | **11** | Buscadores: Pinterest, TikTok, YouTube, fondos, Wikipedia, tiendas y música |
 | `imagenes` | `/imagenes` | **7** | Efectos de imagen: filtros y overlays |
-| `herramientas` | `/herramientas` | — | Utilidades: QR, hash, base64, texto |
+| `herramientas` | `/herramientas` | **7** | Emojimix, países, clima, morse, traductor y Minecraft |
 | `juegos` | `/juegos` | — | Juegos rápidos por chat |
 | `audios` | `/audios` | **8** | Efectos de audio |
+| `random` | `/random` | **11** | Animales al azar (pato, perro, gato, capibara…) |
 
 Rutas viejas que siguen funcionando como redirección:
 `/tools` → `/herramientas`, `/downloader` y `/download` → `/descargas`,
@@ -222,6 +223,47 @@ colores de la bandera no salen apagados. `mode=flag` pinta las seis franjas y
 `mode=glow` aplica un degradé diagonal. Los valores fuera de rango responden
 **400** con la pista del rango válido, no se recortan en silencio.
 
+## 🧰 Herramientas — 7
+
+| Endpoint | Qué hace | Extra |
+|---|---|---|
+| `GET|POST /herramientas/emojimix` | Mezcla dos emojis (Emoji Kitchen de Google). | `emoji1`, `emoji2`, `direct=true` |
+| `GET|POST /herramientas/country` | Ficha de un país. | `q` (nombre) o `code` (AR, ES…) |
+| `GET|POST /herramientas/weather` | Clima actual + 7 días (Open-Meteo). | `city` o `lat`+`lon` |
+| `GET|POST /herramientas/morse` | Morse **encode y decode**. | `text`, `mode=auto\|encode\|decode` |
+| `GET|POST /herramientas/translate` | Traduce a otro idioma (por defecto a inglés). | `text`, `to`, `from` |
+| `GET|POST /herramientas/traductor` | Igual, pero traduce al español por defecto. | `text`, `to`, `from` |
+| `GET|POST /herramientas/minecraft` | Últimas versiones de Minecraft (Bedrock por defecto). | `edition=bedrock\|java\|all`, `limit` |
+
+```bash
+# Emoji Kitchen: si el par no existe, se compone con el set local (source: local)
+curl "http://localhost:3000/herramientas/emojimix?emoji1=😂&emoji2=🥰"
+curl -o mix.png "http://localhost:3000/herramientas/emojimix?emoji1=😂&emoji2=🥰&direct=true"
+
+curl "http://localhost:3000/herramientas/country?q=Argentina"
+curl "http://localhost:3000/herramientas/country?code=UY"
+curl "http://localhost:3000/herramientas/weather?city=Maldonado"
+curl "http://localhost:3000/herramientas/morse?text=SOS&mode=encode"       # ... --- ...
+curl "http://localhost:3000/herramientas/morse?text=...%20---%20...&mode=decode"  # SOS
+curl "http://localhost:3000/herramientas/traductor?text=hello%20world"
+curl "http://localhost:3000/herramientas/minecraft?edition=bedrock&limit=5"
+```
+
+- **emojimix** devuelve `image` (URL de `gstatic` cuando la combinación existe) y,
+  si no existe, un PNG compuesto localmente en base64 con `note` explicándolo.
+- **country** usa restcountries (nombres en inglés); devuelve capital, región,
+  población, moneda, idiomas, bandera (`flag` y `flagEmoji`) y vecinos.
+- **weather** geocodifica la ciudad y devuelve `current` + `daily[7]` con los
+  códigos WMO traducidos a texto.
+- **morse** sin `mode` se detecta solo: si el texto es sólo puntos/guiones se
+  decodifica, si no se codifica. Las letras se separan con un espacio y las
+  palabras con `/`. Acepta acentos y `Ñ`.
+- **translate/traductor** usan Google (endpoint público `gtx`), con respaldo en
+  instancias de Lingva y en MyMemory (este último sólo si mandás `from` explícito,
+  porque no detecta idioma).
+- **minecraft** toma Bedrock de los tags de `Mojang/bedrock-samples` y Java del
+  manifiesto oficial de Mojang; si GitHub falla, intenta leer `mcpedl.org`.
+
 ## 🎵 Audios — 8
 
 `GET|POST /audios/{robot,reverse,demon,bass,underwater,echo,chipmunk,distortion}`
@@ -285,6 +327,35 @@ curl "http://localhost:3000/busquedas/stickerly?q=gatitos"
 Para las fuentes con parámetros extra (`lang`, `country`, `author`), esos valores
 viajan en el enlace `playback`: así la reproducción repite exactamente la misma
 búsqueda y no devuelve otro resultado.
+
+## 🍥 Anime — 7
+
+| Endpoint | Qué hace | Media |
+|---|---|---|
+| `GET|POST /anime/animeinfo` | Ficha de anime de MyAnimeList: sinopsis, nota, episodios, estudios y portada. | `json` |
+| `GET|POST /anime/mangainfo` | Ficha de manga: tomos, capítulos, autores y portada. | `json` |
+| `GET|POST /anime/gacha` | Tirada de gacha: imagen SFW + rareza, estrellas y poder. | `json` |
+| `GET|POST /anime/pokemon` | Types, habilidades, stats, altura, peso, arte oficial y descripción de la Pokédex. | `json` |
+| `GET|POST /anime/waifu`, `maid`, `neko` | Imágenes aleatorias de nekos.best / waifu.pics. | `json` |
+
+```bash
+curl "http://localhost:3000/anime/animeinfo?q=naruto&limit=3"
+curl "http://localhost:3000/anime/mangainfo?q=berserk"
+curl "http://localhost:3000/anime/pokemon?name=pikachu"
+curl "http://localhost:3000/anime/gacha"
+curl "http://localhost:3000/anime/neko?count=3"
+```
+
+`q` acepta el título o el ID de MyAnimeList. `animeinfo` y `mangainfo` devuelven
+`items` con la ficha normalizada (título, sinopsis, nota, géneros, estudios/autores,
+portada y enlace). `pokemon` sin `name` elige uno al azar entre los 1025 de la Pokédex.
+
+**Filtro NSFW siempre activo.** Jikan recibe `sfw=true` y, además, se descartan las
+fichas con rating `Rx - Hentai`, géneros Hentai/Erotica o `isAdult: true`; por eso
+`animeinfo` y `mangainfo` pueden devolver menos resultados (o 404) para esos títulos.
+Las imágenes (`waifu`, `maid`, `neko`, `gacha`) se piden **sólo a las categorías SFW**
+de nekos.best y waifu.pics, y cada URL se revisa antes de devolverla: si la API
+responde algo con `/nsfw/`, `/hentai/` o similar, se descarta y se usa la otra fuente.
 
 ## 🎨 Canvas — 12
 
@@ -353,6 +424,31 @@ el frame del video y el PNG se ven exactamente igual. La tipografía y los emoji
 salen del repo (`assets/fonts`, `assets/emoji`), así que no hay cuadrados `▯▯▯`
 ni fuentes remotas en tiempo de ejecución.
 
+## 🎲 Random — 11
+
+Imágenes aleatorias de animales, sin clave ni token:
+
+| Endpoint | Fuente principal |
+|---|---|
+| `GET|POST /random/duck` | random-d.uk |
+| `GET|POST /random/dog` | dog.ceo (incluye la raza) |
+| `GET|POST /random/cat` | The Cat API |
+| `GET|POST /random/rabbit` | bunnies.io (GIF) |
+| `GET|POST /random/panda`, `koala` | some-random-api (con dato curioso) |
+| `GET|POST /random/squirrel`, `capybara`, `babyowl`, `babybear`, `baby` | Wikimedia Commons |
+
+```bash
+curl "http://localhost:3000/random/dog"
+curl "http://localhost:3000/random/capybara?count=3"
+curl -o pato.jpg "http://localhost:3000/random/duck?direct=true&download=true"
+```
+
+Cada respuesta trae `image` (URL original), `source`, `page` y `fact` cuando la
+fuente lo da. `count` (1-10) devuelve `items`. `direct=true` sirve el archivo con
+soporte de `Range` y `download=true` lo entrega como adjunto. Si la API dedicada
+falla, se usa Wikimedia Commons (filtrando mapas, logos y fotos chicas).
+`baby` sortea una cría al azar y dice cuál salió en `kind` (Puppy, Kitten, Duckling…).
+
 ## 🎬 Portada (`/welcome`)
 
 La página previa al dashboard replica la portada de referencia: hoja de papel,
@@ -386,7 +482,7 @@ En Render/Vercel se configuran como variables de entorno (`render.yaml`).
 
 ```
 src/
-  server.js            Express: CORS, estáticos, páginas y los 9 routers
+  server.js            Express: CORS, estáticos, páginas y los 10 routers
   config.js            nombre, marca, repo, puerto…
   catalog/             fichas de cada categoría (desc + params) → web, /docs
     index.js           junta los 9 archivos y expone totals()/findEndpoint()

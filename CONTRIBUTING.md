@@ -1,6 +1,6 @@
 # Cómo agregar o editar un endpoint
 
-Pulse API tiene **9 categorías** y hoy sólo `canvas` publica endpoints
+Pulse API tiene **10 categorías** y hoy publican todas menos `juegos`
 (`brat` y `bratvideo`). Las otras ocho ya tienen su router montado y sólo les
 falta el código y su ficha.
 

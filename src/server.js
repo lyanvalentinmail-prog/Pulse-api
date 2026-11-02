@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
 // Deben ir ANTES de los routers API para que GET /canvas sirva la web y /canvas/:id el PNG.
 app.use(require('./routes/pages'));
 
-// API — nueve categorías (ver src/routes/<categoría>.js).
+// API — diez categorías (ver src/routes/<categoría>.js).
 app.use(require('./utils/requestContext').requestContext);
 app.use('/anime', require('./routes/anime'));
 app.use('/canvas', require('./routes/canvas'));
@@ -36,6 +36,7 @@ app.use('/imagenes', require('./routes/imagenes'));
 app.use('/herramientas', require('./routes/herramientas'));
 app.use('/juegos', require('./routes/juegos'));
 app.use('/audios', require('./routes/audios'));
+app.use('/random', require('./routes/random'));
 
 // Salud
 app.get('/ping', (req, res) => {
